@@ -1,0 +1,35 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#047857"/>
+      <stop offset="50%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#10b981"/>
+    </linearGradient>
+    <linearGradient id="toolGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#d1fae5"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#064e3b" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+  
+  <!-- Fondo redondeado suave -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Circulo sutil de profundidad -->
+  <circle cx="256" cy="256" r="210" fill="none" stroke="#34d399" stroke-width="6" stroke-opacity="0.25"/>
+  
+  <!-- Letras TM en tipografia industrial gruesa -->
+  <g filter="url(#shadow)">
+    <!-- Letra T -->
+    <path d="M110 180 L230 180 L230 225 L188 225 L188 350 L152 350 L152 225 L110 225 Z" fill="url(#toolGrad)"/>
+    
+    <!-- Letra M -->
+    <path d="M250 180 L292 180 L330 270 L368 180 L410 180 L410 350 L376 350 L376 230 L344 305 L316 305 L284 230 L284 350 L250 350 Z" fill="url(#toolGrad)"/>
+  </g>
+  
+  <!-- Insignia PRO inferior -->
+  <rect x="186" y="380" width="140" height="34" rx="17" fill="#064e3b" fill-opacity="0.8" stroke="#34d399" stroke-width="2"/>
+  <text x="256" y="404" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="900" fill="#a7f3d0" text-anchor="middle" letter-spacing="4">PRO</text>
+</svg>

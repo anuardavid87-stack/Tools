@@ -1,0 +1,3005 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full theme-verde-claro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ToolMaster Pro - Control de Herramientas, Maquinaria y Mantenimientos</title>
+  
+  <!-- Metadatos y Manifiesto PWA (Progressive Web App) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#16a34a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ToolMaster Pro">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  
+  <!-- Tailwind CSS Local con fallback a CDN -->
+  <script src="lib/tailwindcss.js"></script>
+  <script>
+    if (!window.tailwind) {
+      document.write('<script src="https://cdn.tailwindcss.com"><\/script>');
+    }
+  </script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              600: '#16a34a',
+              700: '#15803d',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Vue 3 Local con fallback a CDN -->
+  <script src="lib/vue.global.prod.js"></script>
+  <script>
+    if (!window.Vue) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"><\/script>');
+    }
+  </script>
+  
+  <!-- Supabase Config & SDK Local con fallback a CDN -->
+  <script src="supabase-config.js"></script>
+  <script src="lib/supabase.js"></script>
+  <script>
+    if (!window.supabase) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"><\/script>');
+    }
+  </script>
+</head>
+<body class="h-full font-sans antialiased theme-verde-claro selection:bg-emerald-500 selection:text-white">
+
+  <div id="app" class="min-h-full flex flex-col no-print">
+
+    <!-- ============================================================== -->
+    <!-- PANTALLA DE INICIO DE SESIÓN (LOGIN GATING)                    -->
+    <!-- ============================================================== -->
+    <div v-if="!isAuthenticated" class="min-h-screen flex items-center justify-center p-4 login-bg bg-gradient-to-br from-emerald-100 via-green-50 to-emerald-200">
+      <div class="w-full max-w-md space-y-6 animate-fade-in">
+        
+        <!-- Logo y Título -->
+        <div class="text-center space-y-2">
+          <div class="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 items-center justify-center shadow-lg shadow-emerald-900/30 text-white font-black text-2xl tracking-wider mb-2">
+            TM
+          </div>
+          <h1 class="text-2xl font-black text-white tracking-tight">ToolMaster <span class="text-emerald-400">Pro</span></h1>
+          <p class="text-xs text-slate-400">Sistema de Control de Herramientas, Maquinaria y Mantenimientos</p>
+        </div>
+
+        <!-- Tarjeta del Formulario de Acceso -->
+        <div class="login-card bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
+          <div>
+            <h2 class="text-base font-bold text-white">Iniciar Sesión</h2>
+            <p class="text-xs text-slate-400">Ingresa tus credenciales para acceder al sistema.</p>
+          </div>
+
+          <!-- Mensaje de Error -->
+          <div v-if="loginForm.error" class="bg-rose-950/70 border border-rose-800/80 rounded-xl p-3 text-xs text-rose-300 flex items-center gap-2">
+            <span v-html="icons.alert" class="shrink-0 text-rose-400"></span>
+            <span>{{ loginForm.error }}</span>
+          </div>
+
+          <form @submit.prevent="login" class="space-y-4 text-xs">
+            
+            <!-- Campo Usuario -->
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1.5">Usuario o Correo Electrónico</label>
+              <div class="relative">
+                <input 
+                  v-model="loginForm.username" 
+                  type="text" 
+                  required 
+                  autofocus
+                  placeholder="admin" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 pl-9 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.technicians"></span>
+              </div>
+            </div>
+
+            <!-- Campo Clave de Acceso -->
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1.5">Clave de Acceso (Contraseña)</label>
+              <div class="relative">
+                <input 
+                  v-model="loginForm.password" 
+                  :type="loginForm.showPassword ? 'text' : 'password'" 
+                  required
+                  placeholder="••••••••" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 pl-9 pr-10 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.lock"></span>
+                <button 
+                  type="button" 
+                  @click="loginForm.showPassword = !loginForm.showPassword" 
+                  class="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 focus:outline-none">
+                  <span v-if="!loginForm.showPassword" v-html="icons.eye"></span>
+                  <span v-else v-html="icons.eyeOff"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Recordar Sesión -->
+            <div class="flex items-center justify-between text-[11px] pt-1">
+              <label class="flex items-center gap-2 cursor-pointer text-slate-400 select-none">
+                <input type="checkbox" v-model="loginForm.remember" class="w-3.5 h-3.5 rounded text-emerald-600 focus:ring-0">
+                <span>Recordar sesión en este equipo</span>
+              </label>
+            </div>
+
+            <!-- Botón de Envío -->
+            <button 
+              type="submit" 
+              :disabled="loginForm.loading"
+              class="w-full bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold py-2.5 rounded-xl shadow-lg shadow-emerald-900/30 transition-all flex items-center justify-center gap-2">
+              <span v-if="!loginForm.loading">Ingresar al Sistema &rarr;</span>
+              <span v-else class="animate-pulse">Validando credenciales...</span>
+            </button>
+
+          </form>
+
+          <!-- Tarjeta Informativa con Credenciales Iniciales -->
+          <div class="mt-6 pt-5 border-t border-slate-800/80 bg-slate-950/60 -mx-6 -mb-6 p-4 rounded-b-2xl space-y-2 text-[11px]">
+            <div class="flex items-center gap-1.5 font-bold text-slate-300">
+              <span v-html="icons.shield" class="text-emerald-400"></span>
+              <span>Cuentas y Claves de Acceso Iniciales:</span>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-[10px] font-mono">
+              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                <div class="font-bold text-purple-400">Admin</div>
+                <div class="text-slate-300">admin</div>
+                <div class="text-slate-400">admin123</div>
+              </div>
+              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                <div class="font-bold text-emerald-400">Almacén</div>
+                <div class="text-slate-300">operador</div>
+                <div class="text-slate-400">almacen123</div>
+              </div>
+              <div class="bg-slate-900 p-2 rounded-lg border border-slate-800">
+                <div class="font-bold text-blue-400">Consulta</div>
+                <div class="text-slate-300">supervisor</div>
+                <div class="text-slate-400">consulta123</div>
+              </div>
+            </div>
+            <p class="text-[10px] text-slate-400 italic text-center">Puedes crear más usuarios y cambiar las claves una vez ingreses.</p>
+
+            <!-- Acceso y Estado de Conexión Nube Supabase -->
+            <div class="pt-2 text-center">
+              <button 
+                type="button" 
+                @click="openSupabaseModal()" 
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition-all shadow-sm"
+                :class="supabaseConnected ? 'bg-emerald-950/70 border-emerald-500/50 text-emerald-300 hover:bg-emerald-900/80' : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:bg-slate-800'">
+                <span v-if="supabaseConnected" class="flex h-2 w-2 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span v-else class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span v-if="supabaseConnected">🟢 Supabase: Conectado</span>
+                <span v-else>🟡 Base de Datos Nube (Supabase)</span>
+              </button>
+
+              <!-- Botón Instalar PWA en Móvil / PC -->
+              <button 
+                v-if="canInstallPwa"
+                type="button" 
+                @click="installPwa()" 
+                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition-all shadow-sm bg-blue-950/70 border-blue-500/50 text-blue-300 hover:bg-blue-900/80 ml-2">
+                <span v-html="icons.mobile"></span>
+                <span>📱 Instalar App</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- APLICACIÓN PRINCIPAL (VISIBLE SOLO SI ESTÁ AUTENTICADO)         -->
+    <!-- ============================================================== -->
+    <template v-else>
+
+      <!-- BARRA SUPERIOR DE NAVEGACIÓN -->
+      <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-30 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex items-center justify-between h-16">
+            
+            <!-- Logo y Marca -->
+            <div class="flex items-center gap-3 cursor-pointer" @click="activeTab = 'dashboard'">
+              <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-md shadow-emerald-900/30 text-white font-black text-xl tracking-wider">
+                TM
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-lg text-white tracking-tight">ToolMaster <span class="text-emerald-400">Pro</span></span>
+                  <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold border border-emerald-500/30 uppercase tracking-widest">Industrial</span>
+                </div>
+                <p class="text-xs text-slate-400 hidden sm:block truncate max-w-xs">{{ company.name }}</p>
+              </div>
+            </div>
+
+            <!-- Pestañas Principales (Desktop) -->
+            <nav class="hidden md:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+              <button 
+                @click="activeTab = 'dashboard'"
+                :class="activeTab === 'dashboard' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.dashboard"></span>
+                <span>Dashboard</span>
+              </button>
+
+              <button 
+                @click="activeTab = 'tools'"
+                :class="activeTab === 'tools' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.tool"></span>
+                <span>Equipos</span>
+                <span class="ml-0.5 text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-full">{{ totalToolsCount }}</span>
+              </button>
+
+              <button 
+                @click="activeTab = 'loans'"
+                :class="activeTab === 'loans' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.loans"></span>
+                <span>Préstamos</span>
+                <span v-if="activeLoans.length > 0" 
+                  :class="overdueLoans.length > 0 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse' : 'bg-amber-500/20 text-amber-400'"
+                  class="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  {{ activeLoans.length }}
+                </span>
+              </button>
+
+              <button 
+                @click="activeTab = 'maintenances'"
+                :class="activeTab === 'maintenances' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.maintenance"></span>
+                <span>Taller</span>
+                <span v-if="pendingMaintenances.length > 0" class="ml-0.5 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">
+                  {{ pendingMaintenances.length }}
+                </span>
+              </button>
+
+              <button 
+                @click="activeTab = 'technicians'"
+                :class="activeTab === 'technicians' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.technicians"></span>
+                <span>Técnicos</span>
+              </button>
+
+              <!-- Pestaña Usuarios (Exclusiva para Administrador) -->
+              <button 
+                v-if="isAdmin"
+                @click="activeTab = 'users'"
+                :class="activeTab === 'users' ? 'bg-slate-800 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.users"></span>
+                <span>Usuarios</span>
+                <span class="ml-0.5 text-[10px] bg-purple-900/60 text-purple-300 px-1.5 py-0.5 rounded-full">{{ users.length }}</span>
+              </button>
+
+              <button 
+                @click="activeTab = 'reports'"
+                :class="activeTab === 'reports' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.reports"></span>
+                <span>Reportes</span>
+              </button>
+            </nav>
+
+            <!-- Acceso Rápido & Perfil del Usuario Activo -->
+            <div class="flex items-center gap-3">
+              
+              <!-- Botón Nueva Entrega (Deshabilitado en modo consulta) -->
+              <button 
+                v-if="!isConsulta"
+                @click="openNewLoanModal()" 
+                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md shadow-emerald-900/20 transition-colors">
+                <span v-html="icons.plus"></span>
+                <span class="hidden sm:inline">Nueva Entrega</span>
+              </button>
+
+              <!-- Botón Estado y Configuración Nube Supabase -->
+              <button 
+                @click="openSupabaseModal()" 
+                class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
+                :class="supabaseConnected ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 hover:bg-emerald-900' : 'bg-slate-800 text-amber-300 border-amber-500/40 hover:bg-slate-700'"
+                :title="supabaseConnected ? 'Conectado a Supabase en Tiempo Real. Clic para administrar' : 'Modo Local Offline. Clic para conectar Supabase en la nube'">
+                <span v-if="supabaseConnected" class="flex h-2 w-2 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                <span v-else class="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span v-if="supabaseConnected" class="hidden sm:inline">🟢 En Vivo</span>
+                <span v-else class="hidden sm:inline">🟡 Conectar Nube</span>
+              </button>
+
+              <!-- Botón Instalar PWA en Dispositivo -->
+              <button 
+                v-if="canInstallPwa"
+                @click="installPwa()" 
+                class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm bg-blue-950/80 text-blue-300 border-blue-500/50 hover:bg-blue-900 cursor-pointer animate-pulse"
+                title="Instalar ToolMaster Pro como aplicación en este dispositivo">
+                <span v-html="icons.mobile"></span>
+                <span class="hidden sm:inline">Instalar App</span>
+              </button>
+
+              <!-- Conmutador de Fondo / Tema (Verde Claro / Oscuro) -->
+              <button 
+                @click="toggleTheme()" 
+                class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                :class="currentTheme === 'verde-claro' ? 'bg-emerald-800 text-emerald-100 border-emerald-600 hover:bg-emerald-700' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'"
+                :title="currentTheme === 'verde-claro' ? 'Cambiar a Fondo Oscuro' : 'Cambiar a Fondo Verde Claro'">
+                <span v-if="currentTheme === 'verde-claro'">🌿 Verde Claro</span>
+                <span v-else>🌙 Oscuro</span>
+              </button>
+
+              <!-- Cápsula de Usuario Activo y Logout -->
+              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 pl-2.5 pr-1.5 py-1.5 rounded-xl">
+                <div class="text-right hidden sm:block">
+                  <div class="text-xs font-bold text-white leading-none">{{ currentUser.name }}</div>
+                  <span :class="getRoleBadge(currentUser.role)" class="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded mt-0.5 inline-block">
+                    {{ getRoleLabel(currentUser.role) }}
+                  </span>
+                </div>
+
+                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-xs text-white border border-slate-700">
+                  {{ currentUser.name ? currentUser.name[0].toUpperCase() : 'U' }}
+                </div>
+
+                <!-- Botón Cerrar Sesión -->
+                <button 
+                  @click="logout()" 
+                  title="Cerrar sesión"
+                  class="text-slate-400 hover:text-rose-400 hover:bg-slate-800 p-1.5 rounded-lg transition-colors ml-1">
+                  <span v-html="icons.logout"></span>
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- Pestañas Móvil (Scroll horizontal) -->
+          <div class="md:hidden flex overflow-x-auto py-2 gap-2 border-t border-slate-800/80 no-scrollbar">
+            <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Dashboard</button>
+            <button @click="activeTab = 'tools'" :class="activeTab === 'tools' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Equipos ({{ totalToolsCount }})</button>
+            <button @click="activeTab = 'loans'" :class="activeTab === 'loans' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Préstamos ({{ activeLoans.length }})</button>
+            <button @click="activeTab = 'maintenances'" :class="activeTab === 'maintenances' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Taller</button>
+            <button @click="activeTab = 'technicians'" :class="activeTab === 'technicians' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Técnicos</button>
+            <button v-if="isAdmin" @click="activeTab = 'users'" :class="activeTab === 'users' ? 'bg-slate-800 text-purple-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Usuarios</button>
+            <button @click="activeTab = 'reports'" :class="activeTab === 'reports' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Reportes</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- AVISO DE MODO CONSULTA (SOLO LECTURA) -->
+      <div v-if="isConsulta" class="bg-blue-950/70 border-b border-blue-800/60 px-4 py-1.5 text-blue-200 text-xs flex items-center justify-between">
+        <div class="max-w-7xl mx-auto w-full flex items-center gap-2">
+          <span class="text-blue-400 font-bold flex items-center gap-1">
+            <span v-html="icons.shield"></span> Modo Consulta:
+          </span>
+          <span>Has iniciado como <strong>{{ currentUser.name }}</strong> (Solo Lectura). Puedes visualizar inventarios, consultar historial e imprimir vales oficiales.</span>
+        </div>
+      </div>
+
+      <!-- ALERTA GLOBAL DE PRÉSTAMOS VENCIDOS -->
+      <div v-if="overdueLoans.length > 0" class="bg-rose-950/70 border-b border-rose-800/60 px-4 py-2 text-rose-200 text-xs flex items-center justify-between">
+        <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-rose-400 font-bold flex items-center gap-1">
+              <span v-html="icons.alert"></span>
+              ¡Atención!
+            </span>
+            <span>Hay <strong>{{ overdueLoans.length }}</strong> préstamo(s) que superaron la fecha límite de devolución.</span>
+          </div>
+          <button @click="activeTab = 'loans'" class="text-rose-300 underline font-medium hover:text-white ml-3">
+            Ver préstamos retrasados &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTENIDO PRINCIPAL -->
+      <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- ========================================== -->
+        <!-- 1. VISTA: DASHBOARD                       -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'dashboard'" class="space-y-6 animate-fade-in">
+          
+          <!-- Tarjetas de Métricas (KPIs) -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Total Equipos -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inventario Total</span>
+                <div class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
+                  <span v-html="icons.tool"></span>
+                </div>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-bold text-white tracking-tight">{{ totalToolsCount }}</span>
+                <span class="text-xs text-slate-400">equipos registrados</span>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <span class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> {{ availableToolsCount }} Disponibles
+                </span>
+                <span class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> {{ loanedToolsCount }} En Uso
+                </span>
+              </div>
+            </div>
+
+            <!-- Préstamos Activos -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Préstamos en Curso</span>
+                <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <span v-html="icons.loans"></span>
+                </div>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-bold text-amber-400 tracking-tight">{{ activeLoans.length }}</span>
+                <span class="text-xs text-slate-400">vales abiertos</span>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                <span v-if="overdueLoans.length > 0" class="text-rose-400 font-medium flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> {{ overdueLoans.length }} Vencidos
+                </span>
+                <span v-else class="text-emerald-400 font-medium flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Todos al día
+                </span>
+                <button @click="activeTab = 'loans'" class="text-slate-400 hover:text-slate-200">Ver lista &rarr;</button>
+              </div>
+            </div>
+
+            <!-- Mantenimientos Pendientes -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Mantenimientos</span>
+                <div class="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                  <span v-html="icons.maintenance"></span>
+                </div>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-bold text-blue-400 tracking-tight">{{ pendingMaintenances.length }}</span>
+                <span class="text-xs text-slate-400">programados / taller</span>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <span>{{ inMaintenanceToolsCount }} equipos en taller</span>
+                <button @click="activeTab = 'maintenances'" class="text-slate-400 hover:text-slate-200">Ver taller &rarr;</button>
+              </div>
+            </div>
+
+            <!-- Técnicos Activos -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Personal Técnico</span>
+                <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <span v-html="icons.technicians"></span>
+                </div>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-bold text-white tracking-tight">{{ technicians.length }}</span>
+                <span class="text-xs text-slate-400">técnicos registrados</span>
+              </div>
+              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <span>Personal habilitado</span>
+                <button @click="activeTab = 'technicians'" class="text-slate-400 hover:text-slate-200">Gestionar &rarr;</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Barra de Acciones Rápidas (Visible para Admin y Almacén) -->
+          <div v-if="!isConsulta" class="bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 class="text-base font-semibold text-white">Operaciones Rápidas de Almacén</h3>
+              <p class="text-xs text-slate-400">Despacha herramientas a técnicos o recibe devoluciones con inspección de condición.</p>
+            </div>
+            <div class="flex flex-wrap gap-2.5">
+              <button @click="openNewLoanModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-all">
+                <span v-html="icons.plus"></span> Nueva Entrega a Técnico
+              </button>
+              <button @click="activeTab = 'loans'" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 border border-slate-700 transition-all">
+                <span>↩</span> Recibir Devolución
+              </button>
+              <button @click="openNewToolModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 border border-slate-700 transition-all">
+                <span v-html="icons.tool"></span> Registrar Equipo
+              </button>
+              <button @click="openNewMaintenanceModal()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 border border-slate-700 transition-all">
+                <span v-html="icons.maintenance"></span> Programar Mantenimiento
+              </button>
+            </div>
+          </div>
+
+          <!-- Dos Columnas del Dashboard -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Columna Izquierda: Préstamos Activos (2 cols) -->
+            <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                  <h3 class="font-bold text-white text-sm">Préstamos Activos en Posesión de Técnicos</h3>
+                </div>
+                <button @click="activeTab = 'loans'" class="text-xs text-emerald-400 hover:text-emerald-300 font-medium">Ver todos ({{ activeLoans.length }}) &rarr;</button>
+              </div>
+
+              <div v-if="activeLoans.length === 0" class="py-12 text-center text-slate-500 text-xs">
+                No hay préstamos activos en este momento. Todas las herramientas están en almacén.
+              </div>
+
+              <div v-else class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                  <thead class="bg-slate-950/70 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th class="py-2.5 px-3">Vale / Fecha</th>
+                      <th class="py-2.5 px-3">Técnico</th>
+                      <th class="py-2.5 px-3">Equipos Asignados</th>
+                      <th class="py-2.5 px-3">Retorno Previsto</th>
+                      <th class="py-2.5 px-3 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60">
+                    <tr v-for="loan in activeLoans.slice(0, 5)" :key="loan.id" class="hover:bg-slate-800/40 transition-colors">
+                      <td class="py-3 px-3">
+                        <span class="font-mono font-semibold text-emerald-400">{{ loan.voucherNumber }}</span>
+                        <div class="text-[10px] text-slate-400">{{ loan.loanDate }}</div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <div class="font-medium text-white">{{ loan.technicianName }}</div>
+                        <div class="text-[10px] text-slate-400">{{ loan.project || 'Proyecto General' }}</div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <div class="space-y-0.5">
+                          <span v-for="t in loan.toolSnapshot" :key="t.id" class="inline-block bg-slate-800 text-slate-200 px-2 py-0.5 rounded text-[11px] font-mono mr-1 mb-1">
+                            {{ t.code }} - {{ t.name }}
+                          </span>
+                        </div>
+                      </td>
+                      <td class="py-3 px-3">
+                        <div v-if="isLoanOverdue(loan.expectedReturnDate, loan.actualReturnDate)" class="text-rose-400 font-bold flex items-center gap-1">
+                          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                          Vencido ({{ Math.abs(getDaysDifference(loan.expectedReturnDate)) }} d)
+                        </div>
+                        <div v-else class="text-slate-300">
+                          {{ loan.expectedReturnDate }}
+                          <span class="text-[10px] text-slate-400 block">En {{ getDaysDifference(loan.expectedReturnDate) }} días</span>
+                        </div>
+                      </td>
+                      <td class="py-3 px-3 text-right space-x-1">
+                        <button v-if="!isConsulta" @click="openReturnModal(loan)" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded text-xs font-medium transition-colors">
+                          Devolver
+                        </button>
+                        <button @click="openPrintVoucher(loan)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs transition-colors" title="Imprimir Vale">
+                          <span v-html="icons.print"></span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Columna Derecha: Mantenimientos y Estado de Flota -->
+            <div class="space-y-6">
+              
+              <!-- Tarjeta de Mantenimientos Próximos -->
+              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>
+                    <h3 class="font-bold text-white text-sm">Mantenimientos Próximos</h3>
+                  </div>
+                  <button @click="activeTab = 'maintenances'" class="text-xs text-blue-400 hover:text-blue-300 font-medium">Ver taller &rarr;</button>
+                </div>
+
+                <div v-if="pendingMaintenances.length === 0" class="py-8 text-center text-slate-500 text-xs">
+                  No hay mantenimientos pendientes. Todo el parque de maquinaria está al día.
+                </div>
+
+                <div v-else class="space-y-3">
+                  <div v-for="maint in pendingMaintenances.slice(0, 4)" :key="maint.id" class="p-3 bg-slate-950/60 rounded-xl border border-slate-800/80 hover:border-slate-700 transition-colors">
+                    <div class="flex items-start justify-between">
+                      <div>
+                        <span class="font-mono text-xs font-semibold text-blue-400">{{ maint.toolCode }}</span>
+                        <h4 class="text-xs font-medium text-white line-clamp-1">{{ maint.toolName }}</h4>
+                      </div>
+                      <span :class="maint.type === 'correctivo' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400'" class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded">
+                        {{ maint.type }}
+                      </span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">{{ maint.description }}</p>
+                    <div class="mt-2 flex items-center justify-between text-[11px] pt-2 border-t border-slate-800/60">
+                      <span class="text-slate-400">Prog: {{ maint.scheduledDate }}</span>
+                      <button v-if="!isConsulta" @click="openCompleteMaintenanceModal(maint)" class="text-emerald-400 hover:text-emerald-300 font-medium">
+                        Finalizar &check;
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resumen Rápido de Estado de Equipos -->
+              <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-3">
+                <h3 class="font-bold text-white text-sm">Disponibilidad de la Flota</h3>
+                <div class="space-y-2">
+                  <div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                      <span>Disponibles en Almacén</span>
+                      <span class="font-bold text-emerald-400">{{ availableToolsCount }} / {{ totalToolsCount }}</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div class="bg-emerald-500 h-full rounded-full" :style="{ width: totalToolsCount ? (availableToolsCount / totalToolsCount * 100) + '%' : '0%' }"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                      <span>En Operación / Prestados</span>
+                      <span class="font-bold text-amber-400">{{ loanedToolsCount }} / {{ totalToolsCount }}</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div class="bg-amber-500 h-full rounded-full" :style="{ width: totalToolsCount ? (loanedToolsCount / totalToolsCount * 100) + '%' : '0%' }"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="flex justify-between text-xs text-slate-300 mb-1">
+                      <span>En Taller / Mantenimiento</span>
+                      <span class="font-bold text-blue-400">{{ inMaintenanceToolsCount }} / {{ totalToolsCount }}</span>
+                    </div>
+                    <div class="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                      <div class="bg-blue-500 h-full rounded-full" :style="{ width: totalToolsCount ? (inMaintenanceToolsCount / totalToolsCount * 100) + '%' : '0%' }"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 2. VISTA: HERRAMIENTAS Y MAQUINARIA       -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'tools'" class="space-y-6 animate-fade-in">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <h2 class="text-xl font-bold text-white tracking-tight">Catálogo de Herramientas y Maquinaria</h2>
+                <p class="text-xs text-slate-400">Consulta especificaciones técnicas, números de serie, ubicación y asigna de inmediato.</p>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <button v-if="!isConsulta" @click="openNewToolModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all">
+                  <span v-html="icons.plus"></span> Nuevo Equipo
+                </button>
+                <button v-if="isAdmin" @click="openImportModal('tools')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all" title="Cargar equipos mediante plantilla Excel (Solo Administrador)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                  <span>Cargar Plantilla</span>
+                </button>
+                <button @click="exportToolsToExcel()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center gap-1.5 border border-slate-700 transition-all" title="Descargar en Excel">
+                  <span v-html="icons.excel"></span> Excel
+                </button>
+              </div>
+            </div>
+
+            <!-- Controles de Filtrado -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 pt-2">
+              
+              <!-- Buscador -->
+              <div class="relative sm:col-span-2">
+                <input 
+                  v-model="toolSearch" 
+                  type="text" 
+                  placeholder="Buscar por código, nombre, marca, serie, ubicación..." 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.search"></span>
+                <button v-if="toolSearch" @click="toolSearch = ''" class="absolute right-3 top-2.5 text-slate-500 hover:text-white">✕</button>
+              </div>
+
+              <!-- Filtro Categoría -->
+              <div>
+                <select v-model="toolCategoryFilter" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                  <option value="">Todas las categorías</option>
+                  <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+                </select>
+              </div>
+
+              <!-- Filtro Estado -->
+              <div>
+                <select v-model="toolStatusFilter" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                  <option value="">Todos los estados</option>
+                  <option value="disponible">Disponible</option>
+                  <option value="prestado">En Préstamo</option>
+                  <option value="mantenimiento">En Mantenimiento</option>
+                  <option value="danado">Dañada / Con Falla</option>
+                  <option value="baja">De Baja</option>
+                </select>
+              </div>
+
+              <!-- Modo Vista (Tarjetas / Tabla) -->
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 justify-end">
+                <button @click="toolViewMode = 'cards'" :class="toolViewMode === 'cards' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 text-xs rounded-lg font-medium transition-colors">
+                  Tarjetas
+                </button>
+                <button @click="toolViewMode = 'table'" :class="toolViewMode === 'table' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 text-xs rounded-lg font-medium transition-colors">
+                  Tabla
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Sin Resultados -->
+          <div v-if="filteredTools.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
+            <div class="w-12 h-12 rounded-full bg-slate-800 text-slate-400 mx-auto flex items-center justify-center">
+              <span v-html="icons.search"></span>
+            </div>
+            <h3 class="text-base font-bold text-white">No se encontraron herramientas o maquinaria</h3>
+            <p class="text-xs text-slate-400 max-w-sm mx-auto">No hay equipos que coincidan con los filtros actuales de búsqueda.</p>
+            <button @click="toolSearch = ''; toolCategoryFilter = ''; toolStatusFilter = ''" class="text-xs text-emerald-400 font-semibold underline">
+              Limpiar filtros de búsqueda
+            </button>
+          </div>
+
+          <!-- MODO TARJETAS -->
+          <div v-else-if="toolViewMode === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="tool in filteredTools" :key="tool.id" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:border-slate-700 transition-all flex flex-col justify-between space-y-4 shadow-sm">
+              
+              <div>
+                <div class="flex items-start justify-between gap-2">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/40">
+                      {{ tool.code }}
+                    </span>
+                    <span class="text-[11px] text-slate-400 truncate max-w-[130px]">{{ tool.category }}</span>
+                  </div>
+                  <span :class="getStatusBadge(tool.status)" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap">
+                    {{ getStatusLabel(tool.status) }}
+                  </span>
+                </div>
+
+                <h3 class="text-sm font-bold text-white mt-2.5 line-clamp-2 hover:text-emerald-300 cursor-pointer" @click="openToolDetail(tool)">
+                  {{ tool.name }}
+                </h3>
+                <p class="text-xs text-slate-400 mt-1 font-medium">{{ tool.brand }} {{ tool.model ? '• ' + tool.model : '' }}</p>
+
+                <div class="mt-3.5 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">No. Serie:</span>
+                    <span class="font-mono font-medium text-slate-300">{{ tool.serialNumber || 'N/A' }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-slate-500">Ubicación:</span>
+                    <span class="text-slate-300 truncate max-w-[170px]">{{ tool.location || 'Almacén Central' }}</span>
+                  </div>
+                  <div class="flex justify-between" v-if="tool.cost">
+                    <span class="text-slate-500">Valor Estimado:</span>
+                    <span class="font-semibold text-emerald-400">${{ tool.cost.toLocaleString() }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botones de Acción -->
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-1.5">
+                  <button @click="openToolDetail(tool)" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                    Ficha
+                  </button>
+                  <button v-if="!isConsulta" @click="openEditToolModal(tool)" class="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1.5 rounded-lg text-xs transition-colors" title="Editar datos">
+                    Editar
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-1.5" v-if="!isConsulta">
+                  <button 
+                    v-if="tool.status === 'disponible'" 
+                    @click="openNewLoanModal(tool)" 
+                    class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold text-xs shadow-sm transition-colors">
+                    Prestar
+                  </button>
+                  <button 
+                    v-if="tool.status !== 'prestado'" 
+                    @click="openNewMaintenanceModal(tool)" 
+                    class="bg-blue-600/80 hover:bg-blue-600 text-white px-2.5 py-1.5 rounded-lg text-xs transition-colors" title="Mantenimiento">
+                    🔧
+                  </button>
+                  <button 
+                    v-if="tool.status !== 'prestado'" 
+                    @click="deleteTool(tool)" 
+                    class="text-slate-500 hover:text-rose-400 p-1.5 transition-colors" title="Eliminar equipo">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- MODO TABLA -->
+          <div v-else class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th class="py-3 px-4">Código / Nombre</th>
+                    <th class="py-3 px-4">Categoría</th>
+                    <th class="py-3 px-4">Marca & Modelo</th>
+                    <th class="py-3 px-4">No. Serie</th>
+                    <th class="py-3 px-4">Ubicación</th>
+                    <th class="py-3 px-4">Estado</th>
+                    <th class="py-3 px-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="tool in filteredTools" :key="tool.id" class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3 px-4">
+                      <span class="font-mono font-bold text-emerald-400 block">{{ tool.code }}</span>
+                      <span class="font-semibold text-white hover:text-emerald-300 cursor-pointer" @click="openToolDetail(tool)">{{ tool.name }}</span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-400">{{ tool.category }}</td>
+                    <td class="py-3 px-4">
+                      <span class="text-white">{{ tool.brand }}</span>
+                      <span class="text-slate-400 block text-[11px]">{{ tool.model }}</span>
+                    </td>
+                    <td class="py-3 px-4 font-mono">{{ tool.serialNumber || '—' }}</td>
+                    <td class="py-3 px-4">{{ tool.location || 'Almacén Central' }}</td>
+                    <td class="py-3 px-4">
+                      <span :class="getStatusBadge(tool.status)" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full">
+                        {{ getStatusLabel(tool.status) }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-right space-x-1.5">
+                      <button v-if="tool.status === 'disponible' && !isConsulta" @click="openNewLoanModal(tool)" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-xs font-semibold">
+                        Prestar
+                      </button>
+                      <button @click="openToolDetail(tool)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs">
+                        Ficha
+                      </button>
+                      <button v-if="!isConsulta" @click="openEditToolModal(tool)" class="bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-1 rounded text-xs">
+                        Editar
+                      </button>
+                      <button v-if="tool.status !== 'prestado' && !isConsulta" @click="deleteTool(tool)" class="text-slate-500 hover:text-rose-400 px-1">
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 3. VISTA: PRÉSTAMOS Y DEVOLUCIONES        -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'loans'" class="space-y-6 animate-fade-in">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 class="text-xl font-bold text-white tracking-tight">Control de Entregas y Devoluciones a Técnicos</h2>
+                <p class="text-xs text-slate-400">Asigna herramientas con vales digitales de entrega e inspecciona el estado al recibir.</p>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <button v-if="!isConsulta" @click="openNewLoanModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all">
+                  <span v-html="icons.plus"></span> Nueva Entrega
+                </button>
+                <button @click="exportLoansToExcel()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center gap-1.5 border border-slate-700 transition-all">
+                  <span v-html="icons.excel"></span> Excel
+                </button>
+              </div>
+            </div>
+
+            <!-- Pestañas Internas y Buscador -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+                <button @click="loanTab = 'activos'" :class="loanTab === 'activos' ? 'bg-slate-800 text-emerald-400 font-bold' : 'text-slate-400'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2">
+                  <span>Préstamos Activos</span>
+                  <span :class="overdueLoans.length > 0 ? 'bg-rose-500 text-white' : 'bg-slate-700 text-slate-300'" class="text-[10px] px-1.5 py-0.2 rounded-full">
+                    {{ activeLoans.length }}
+                  </span>
+                </button>
+
+                <button @click="loanTab = 'historial'" :class="loanTab === 'historial' ? 'bg-slate-800 text-emerald-400 font-bold' : 'text-slate-400'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2">
+                  <span>Historial de Devoluciones</span>
+                  <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">{{ completedLoans.length }}</span>
+                </button>
+              </div>
+
+              <div class="relative w-full sm:w-72">
+                <input 
+                  v-model="loanSearch" 
+                  type="text" 
+                  placeholder="Buscar vale, técnico, obra..." 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.search"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- LISTA: PRÉSTAMOS ACTIVOS -->
+          <div v-if="loanTab === 'activos'" class="space-y-4">
+            <div v-if="filteredActiveLoans.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
+              No hay préstamos activos en este momento.
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-for="loan in filteredActiveLoans" :key="loan.id" :class="isLoanOverdue(loan.expectedReturnDate, loan.actualReturnDate) ? 'border-rose-500/60 bg-rose-950/20' : 'border-slate-800 bg-slate-900'" class="border rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700 transition-all">
+                
+                <div>
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <span class="font-mono text-xs font-bold text-emerald-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                        {{ loan.voucherNumber }}
+                      </span>
+                      <span class="text-[11px] text-slate-400 ml-2">Despacho: {{ loan.loanDate }}</span>
+                    </div>
+
+                    <span v-if="isLoanOverdue(loan.expectedReturnDate, loan.actualReturnDate)" class="bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
+                      <span class="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping"></span> Vencido {{ Math.abs(getDaysDifference(loan.expectedReturnDate)) }} días
+                    </span>
+                    <span v-else class="bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                      Devolución en {{ getDaysDifference(loan.expectedReturnDate) }} días
+                    </span>
+                  </div>
+
+                  <div class="mt-3">
+                    <div class="text-xs text-slate-400">Técnico Receptor:</div>
+                    <div class="text-sm font-bold text-white flex items-center gap-2">
+                      {{ loan.technicianName }}
+                      <span class="text-[10px] bg-slate-800 text-slate-300 font-mono px-1.5 py-0.5 rounded">{{ loan.technicianDni }}</span>
+                    </div>
+                    <div class="text-xs text-emerald-400 font-medium mt-0.5">
+                      Obra / Motivo: <span class="text-slate-200">{{ loan.project || 'General' }}</span>
+                    </div>
+                  </div>
+
+                  <div class="mt-3.5 bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                    <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Herramientas entregadas ({{ loan.toolSnapshot ? loan.toolSnapshot.length : 1 }}):</div>
+                    <div class="space-y-1">
+                      <div v-for="t in loan.toolSnapshot" :key="t.id" class="text-xs flex items-center justify-between text-slate-200">
+                        <div>
+                          <span class="font-mono font-bold text-emerald-400">{{ t.code }}</span> - {{ t.name }}
+                        </div>
+                        <span class="font-mono text-[11px] text-slate-400">{{ t.serialNumber }}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div v-if="loan.deliveryNotes" class="mt-2 text-[11px] text-slate-400 italic">
+                    "{{ loan.deliveryNotes }}"
+                  </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                  <button @click="openPrintVoucher(loan)" class="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors">
+                    <span v-html="icons.print"></span> Imprimir Vale
+                  </button>
+
+                  <button v-if="!isConsulta" @click="openReturnModal(loan)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 transition-colors">
+                    <span>↩</span> Registrar Devolución
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- LISTA: HISTORIAL DE DEVOLUCIONES -->
+          <div v-if="loanTab === 'historial'" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div v-if="filteredCompletedLoans.length === 0" class="p-12 text-center text-slate-500 text-xs">
+              Aún no hay registros de devoluciones en el historial.
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th class="py-3 px-4">Vale / Fechas</th>
+                    <th class="py-3 px-4">Técnico</th>
+                    <th class="py-3 px-4">Equipos</th>
+                    <th class="py-3 px-4">Condición de Retorno</th>
+                    <th class="py-3 px-4">Observaciones</th>
+                    <th class="py-3 px-4 text-right">Comprobante</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="loan in filteredCompletedLoans" :key="loan.id" class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3 px-4">
+                      <span class="font-mono font-bold text-emerald-400">{{ loan.voucherNumber }}</span>
+                      <div class="text-[10px] text-slate-400">Entregado: {{ loan.loanDate }}</div>
+                      <div class="text-[10px] text-emerald-400 font-medium">Devuelto: {{ loan.actualReturnDate }}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="font-semibold text-white">{{ loan.technicianName }}</div>
+                      <div class="text-[10px] text-slate-400">{{ loan.project }}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div v-for="t in loan.toolSnapshot" :key="t.id" class="text-[11px]">
+                        <span class="font-mono text-emerald-400">{{ t.code }}</span> {{ t.name }}
+                      </div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span :class="loan.status === 'devuelto_con_danios' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                        {{ loan.returnCondition || 'Ok' }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-400 text-[11px] max-w-xs truncate">
+                      {{ loan.returnNotes || 'Sin observaciones' }}
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                      <button @click="openPrintVoucher(loan)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded transition-colors">
+                        Ver Vale
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 4. VISTA: MANTENIMIENTOS                  -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'maintenances'" class="space-y-6 animate-fade-in">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 class="text-xl font-bold text-white tracking-tight">Gestión de Mantenimientos Preventivos y Correctivos</h2>
+                <p class="text-xs text-slate-400">Control de servicios, talleres autorizados, costos de reparación y cambio de piezas.</p>
+              </div>
+              
+              <div class="flex items-center gap-2">
+                <button v-if="!isConsulta" @click="openNewMaintenanceModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all">
+                  <span v-html="icons.plus"></span> Programar Mantenimiento
+                </button>
+                <button @click="exportMaintenancesToExcel()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center gap-1.5 border border-slate-700 transition-all">
+                  <span v-html="icons.excel"></span> Excel
+                </button>
+              </div>
+            </div>
+
+            <!-- Pestañas Internas -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+              <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+                <button @click="maintenanceTab = 'pendientes'" :class="maintenanceTab === 'pendientes' ? 'bg-slate-800 text-blue-400 font-bold' : 'text-slate-400'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2">
+                  <span>En Proceso / Programados</span>
+                  <span class="bg-blue-500/20 text-blue-400 text-[10px] px-1.5 py-0.2 rounded-full font-bold">{{ pendingMaintenances.length }}</span>
+                </button>
+
+                <button @click="maintenanceTab = 'completados'" :class="maintenanceTab === 'completados' ? 'bg-slate-800 text-blue-400 font-bold' : 'text-slate-400'" class="flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs transition-colors flex items-center gap-2">
+                  <span>Historial Realizados</span>
+                  <span class="bg-slate-700 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">{{ completedMaintenances.length }}</span>
+                </button>
+              </div>
+
+              <div class="relative w-full sm:w-72">
+                <input 
+                  v-model="maintenanceSearch" 
+                  type="text" 
+                  placeholder="Buscar código, equipo, taller..." 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.search"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- LISTA PENDIENTES -->
+          <div v-if="maintenanceTab === 'pendientes'" class="space-y-4">
+            <div v-if="filteredPendingMaintenances.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400 text-xs">
+              No hay mantenimientos pendientes en este momento.
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-for="maint in filteredPendingMaintenances" :key="maint.id" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700 transition-all">
+                
+                <div>
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <span class="font-mono text-xs font-bold text-blue-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                        {{ maint.code }}
+                      </span>
+                      <span class="text-[11px] text-slate-400 ml-2">Programado: {{ maint.scheduledDate }}</span>
+                    </div>
+
+                    <span :class="maint.type === 'correctivo' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-blue-500/20 text-blue-400 border-blue-500/30'" class="border text-[10px] font-bold uppercase px-2 py-0.5 rounded-full">
+                      {{ maint.type }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3">
+                    <span class="font-mono text-xs text-emerald-400 font-semibold">{{ maint.toolCode }}</span>
+                    <h3 class="text-sm font-bold text-white">{{ maint.toolName }}</h3>
+                  </div>
+
+                  <div class="mt-3 bg-slate-950/70 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                      <span class="text-slate-500">Taller / Servicio:</span>
+                      <span class="text-slate-300 font-medium">{{ maint.provider || 'Taller Interno' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-500">Responsable:</span>
+                      <span class="text-slate-300">{{ maint.responsible }}</span>
+                    </div>
+                    <div class="flex justify-between" v-if="maint.cost">
+                      <span class="text-slate-500">Costo Estimado:</span>
+                      <span class="font-semibold text-emerald-400">${{ maint.cost }}</span>
+                    </div>
+                    <p class="text-slate-400 text-[11px] pt-1 border-t border-slate-800 italic">
+                      {{ maint.description }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between" v-if="!isConsulta">
+                  <button @click="openCompleteMaintenanceModal(maint)" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-colors">
+                    <span>&check;</span> Finalizar Mantenimiento
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- HISTORIAL COMPLETADOS -->
+          <div v-if="maintenanceTab === 'completados'" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div v-if="filteredCompletedMaintenances.length === 0" class="p-12 text-center text-slate-500 text-xs">
+              Aún no hay registros de mantenimientos finalizados.
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th class="py-3 px-4">Código / Fecha</th>
+                    <th class="py-3 px-4">Equipo</th>
+                    <th class="py-3 px-4">Tipo</th>
+                    <th class="py-3 px-4">Taller / Proveedor</th>
+                    <th class="py-3 px-4">Costo Total</th>
+                    <th class="py-3 px-4">Trabajo Realizado & Piezas</th>
+                    <th class="py-3 px-4">Próx. Preventivo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="m in filteredCompletedMaintenances" :key="m.id" class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3 px-4">
+                      <span class="font-mono font-bold text-blue-400">{{ m.code }}</span>
+                      <div class="text-[10px] text-slate-400">{{ m.completedDate }}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="font-mono text-emerald-400">{{ m.toolCode }}</span>
+                      <div class="font-semibold text-white">{{ m.toolName }}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span :class="m.type === 'correctivo' ? 'bg-rose-500/20 text-rose-400' : 'bg-blue-500/20 text-blue-400'" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
+                        {{ m.type }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4">{{ m.provider }}</td>
+                    <td class="py-3 px-4 font-bold text-emerald-400">${{ (m.cost || 0).toLocaleString() }}</td>
+                    <td class="py-3 px-4 text-[11px] max-w-xs">
+                      <div class="text-slate-200">{{ m.workDone || m.description }}</div>
+                      <div v-if="m.partsReplaced" class="text-slate-400 mt-0.5">Piezas: {{ m.partsReplaced }}</div>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate || 'N/A' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 5. VISTA: PERSONAL TÉCNICO                 -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'technicians'" class="space-y-6 animate-fade-in">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-white tracking-tight">Directorio de Técnicos y Operadores</h2>
+              <p class="text-xs text-slate-400">Control de personal autorizado para recepción de maquinaria y herramientas.</p>
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <button v-if="!isConsulta" @click="openNewTechModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all">
+                <span v-html="icons.plus"></span> Registrar Técnico
+              </button>
+              <button v-if="isAdmin" @click="openImportModal('techs')" class="bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center gap-1.5 shadow-sm transition-all" title="Cargar técnicos mediante plantilla Excel (Solo Administrador)">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span>Cargar Plantilla</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Tarjetas de Técnicos -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="tech in techniciansWithStats" :key="tech.id" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700 transition-all">
+              
+              <div>
+                <div class="flex items-start justify-between">
+                  <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-slate-800 to-slate-700 flex items-center justify-center font-bold text-white text-sm border border-slate-700">
+                    {{ tech.name.split(' ').map(n => n[0]).slice(0, 2).join('') }}
+                  </div>
+                  
+                  <span v-if="tech.itemsCount > 0" :class="tech.hasOverdue ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'" class="text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {{ tech.itemsCount }} equipo(s) en mano
+                  </span>
+                  <span v-else class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
+                    Sin préstamos activos
+                  </span>
+                </div>
+
+                <h3 class="text-base font-bold text-white mt-3 hover:text-emerald-300 cursor-pointer" @click="openTechDetail(tech)">
+                  {{ tech.name }}
+                </h3>
+                <p class="text-xs text-emerald-400 font-medium">{{ tech.role }}</p>
+
+                <div class="mt-3.5 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80 space-y-1.5 text-xs text-slate-400">
+                  <div class="flex justify-between">
+                    <span>Identificación (DNI):</span>
+                    <span class="font-mono text-slate-200 font-medium">{{ tech.dni }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Teléfono:</span>
+                    <span class="text-slate-200">{{ tech.phone || 'N/A' }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span>Correo:</span>
+                    <span class="text-slate-200 truncate max-w-[170px]">{{ tech.email || 'N/A' }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Botones de Acción -->
+              <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <button @click="openTechDetail(tech)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg font-medium transition-colors">
+                  Ver Historial & Equipos
+                </button>
+
+                <div class="flex items-center gap-1" v-if="!isConsulta">
+                  <button @click="openEditTechModal(tech)" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 p-1.5 rounded-lg transition-colors" title="Editar">
+                    ✏️
+                  </button>
+                  <button @click="deleteTechnician(tech)" class="text-slate-500 hover:text-rose-400 p-1.5 transition-colors" title="Eliminar">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 6. VISTA: GESTIÓN DE USUARIOS (NUEVO)     -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'users' && isAdmin" class="space-y-6 animate-fade-in">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                    <span v-html="icons.users"></span>
+                  </span>
+                  <h2 class="text-xl font-bold text-white tracking-tight">Administración de Usuarios y Claves</h2>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Crea nuevos accesos, asigna roles de permisos y gestiona las claves de la plataforma.</p>
+              </div>
+              
+              <button @click="openNewUserModal()" class="bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 shadow-sm shadow-purple-900/20 transition-all">
+                <span v-html="icons.plus"></span> Crear Nuevo Usuario
+              </button>
+            </div>
+
+            <!-- Filtro de Usuarios -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+              <div class="relative sm:col-span-2">
+                <input 
+                  v-model="userSearch" 
+                  type="text" 
+                  placeholder="Buscar usuario por nombre, login o correo..." 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.search"></span>
+              </div>
+
+              <div>
+                <select v-model="userRoleFilter" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-purple-500">
+                  <option value="">Todos los roles</option>
+                  <option value="admin">Administradores</option>
+                  <option value="almacen">Almacenistas / Operadores</option>
+                  <option value="consulta">Consulta / Solo Lectura</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabla de Usuarios -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th class="py-3 px-4">Usuario</th>
+                    <th class="py-3 px-4">Nombre de Usuario (Login)</th>
+                    <th class="py-3 px-4">Rol / Nivel de Acceso</th>
+                    <th class="py-3 px-4">Estado</th>
+                    <th class="py-3 px-4">Fecha Creación</th>
+                    <th class="py-3 px-4 text-right">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-slate-800/40 transition-colors">
+                    
+                    <!-- Avatar y Nombre -->
+                    <td class="py-3 px-4">
+                      <div class="flex items-center gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-white text-xs border border-slate-700">
+                          {{ user.name ? user.name[0].toUpperCase() : 'U' }}
+                        </div>
+                        <div>
+                          <div class="font-bold text-white flex items-center gap-1.5">
+                            {{ user.name }}
+                            <span v-if="user.id === currentUser.id" class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.2 rounded font-mono">(Tú)</span>
+                          </div>
+                          <div class="text-[11px] text-slate-400">{{ user.email || 'Sin correo registrado' }}</div>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Login -->
+                    <td class="py-3 px-4 font-mono font-semibold text-emerald-400">
+                      @{{ user.username }}
+                    </td>
+
+                    <!-- Rol -->
+                    <td class="py-3 px-4">
+                      <span :class="getRoleBadge(user.role)" class="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full whitespace-nowrap">
+                        {{ getRoleLabel(user.role) }}
+                      </span>
+                    </td>
+
+                    <!-- Estado -->
+                    <td class="py-3 px-4">
+                      <span v-if="user.active" class="text-emerald-400 font-semibold flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Activo
+                      </span>
+                      <span v-else class="text-rose-400 font-semibold flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-rose-500"></span> Desactivado
+                      </span>
+                    </td>
+
+                    <!-- Fecha -->
+                    <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">
+                      {{ user.createdAt || 'Inicial' }}
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="py-3 px-4 text-right space-x-1">
+                      <button 
+                        @click="openEditUserModal(user)" 
+                        class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded text-xs transition-colors">
+                        Editar / Clave
+                      </button>
+
+                      <button 
+                        v-if="user.id !== currentUser.id"
+                        @click="toggleUserStatus(user)" 
+                        :class="user.active ? 'hover:text-amber-400' : 'hover:text-emerald-400'"
+                        class="text-slate-400 px-2 py-1 text-xs transition-colors"
+                        :title="user.active ? 'Desactivar acceso' : 'Activar acceso'">
+                        {{ user.active ? 'Desactivar' : 'Activar' }}
+                      </button>
+
+                      <button 
+                        v-if="user.id !== currentUser.id && user.username !== 'admin'"
+                        @click="deleteUser(user)" 
+                        class="text-slate-500 hover:text-rose-400 p-1 text-xs transition-colors" 
+                        title="Eliminar usuario">
+                        ✕
+                      </button>
+                    </td>
+
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ========================================== -->
+        <!-- 7. VISTA: REPORTES Y CONFIGURACIÓN        -->
+        <!-- ========================================== -->
+        <section v-if="activeTab === 'reports'" class="space-y-6 animate-fade-in">
+          
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm">
+            <h2 class="text-xl font-bold text-white tracking-tight">Reportes, Exportación y Copias de Seguridad</h2>
+            <p class="text-xs text-slate-400">Descarga hojas de cálculo para auditoría o respalda tu base de datos completa.</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            
+            <!-- Bloque Nube: Base de Datos en Tiempo Real con Supabase -->
+            <div class="md:col-span-2 bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <span v-html="icons.cloud"></span>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h3 class="font-bold text-white text-base">Base de Datos en la Nube Supabase (PostgreSQL)</h3>
+                      <span v-if="supabaseConnected" class="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold">🟢 En Vivo</span>
+                      <span v-else class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">🟡 Modo Local</span>
+                    </div>
+                    <p class="text-xs text-slate-400">Sincronización multi-dispositivo en tiempo real con WebSockets para control de inventarios, vales y mantenimientos.</p>
+                  </div>
+                </div>
+                <button 
+                  @click="openSupabaseModal()" 
+                  class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-sm">
+                  <span v-html="icons.cloud"></span>
+                  <span>{{ supabaseConnected ? 'Administrar Nube' : 'Conectar a Supabase' }}</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-slate-800 text-xs">
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <div class="text-slate-400 text-[11px] font-semibold">Estado de Conexión:</div>
+                  <div class="font-bold" :class="supabaseConnected ? 'text-emerald-400' : 'text-amber-400'">
+                    {{ supabaseConnected ? '🟢 Conectado (PostgreSQL)' : '🟡 Almacenamiento Local (Offline)' }}
+                  </div>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1">
+                  <div class="text-slate-400 text-[11px] font-semibold">WebSockets Realtime:</div>
+                  <div class="font-bold" :class="supabaseRealtimeActive ? 'text-emerald-400' : 'text-slate-400'">
+                    {{ supabaseRealtimeActive ? '🟢 Activo (Canal en vivo)' : (supabaseConnected ? '🟡 Conectando canal...' : '⚪ Desactivado') }}
+                  </div>
+                </div>
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 space-y-1 flex items-center justify-between">
+                  <div>
+                    <div class="text-slate-400 text-[11px] font-semibold">Migración de Datos:</div>
+                    <div class="text-slate-200 font-semibold text-[11px]">Subir inventario local</div>
+                  </div>
+                  <button 
+                    @click="uploadLocalDataToSupabase()" 
+                    :disabled="!supabaseConnected || isSyncingCloud"
+                    class="bg-slate-800 hover:bg-slate-700 disabled:opacity-40 text-emerald-400 border border-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all">
+                    &uarr; Subir
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloque 1: Exportación a Excel -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div class="flex items-center gap-2 text-emerald-400">
+                <span v-html="icons.excel"></span>
+                <h3 class="font-bold text-white text-base">Exportación a Excel / CSV</h3>
+              </div>
+              <p class="text-xs text-slate-400">
+                Archivos compatibles con Microsoft Excel en español con codificación UTF-8 para garantizar la visualización correcta de tildes y caracteres especiales.
+              </p>
+
+              <div class="space-y-2.5 pt-2">
+                <button @click="exportToolsToExcel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-3 rounded-xl flex items-center justify-between text-xs font-semibold transition-all">
+                  <div class="flex items-center gap-2">
+                    <span v-html="icons.tool"></span>
+                    <span>Descargar Inventario de Herramientas y Maquinaria</span>
+                  </div>
+                  <span class="text-emerald-400">&darr; .CSV</span>
+                </button>
+
+                <button @click="exportLoansToExcel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-3 rounded-xl flex items-center justify-between text-xs font-semibold transition-all">
+                  <div class="flex items-center gap-2">
+                    <span v-html="icons.loans"></span>
+                    <span>Descargar Registro de Préstamos y Devoluciones</span>
+                  </div>
+                  <span class="text-emerald-400">&darr; .CSV</span>
+                </button>
+
+                <button @click="exportMaintenancesToExcel()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-3 rounded-xl flex items-center justify-between text-xs font-semibold transition-all">
+                  <div class="flex items-center gap-2">
+                    <span v-html="icons.maintenance"></span>
+                    <span>Descargar Historial de Mantenimientos y Costos</span>
+                  </div>
+                  <span class="text-emerald-400">&darr; .CSV</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Bloque 2: Respaldo JSON y Restauración -->
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div class="flex items-center gap-2 text-blue-400">
+                <span v-html="icons.reports"></span>
+                <h3 class="font-bold text-white text-base">Copia de Seguridad (Backup Total)</h3>
+              </div>
+              <p class="text-xs text-slate-400">
+                Guarda un archivo de respaldo con todos tus datos y usuarios en tu computadora o transfiérelo a otra máquina fácilmente.
+              </p>
+
+              <div class="space-y-3 pt-2">
+                <button v-if="isAdmin" @click="exportBackupJSON()" class="w-full bg-blue-600 hover:bg-blue-500 text-white p-3 rounded-xl flex items-center justify-between text-xs font-semibold shadow-sm transition-all">
+                  <span>Descargar Copia de Seguridad Completa</span>
+                  <span>&darr; .JSON</span>
+                </button>
+                <div v-else class="text-slate-500 text-xs italic">La descarga de copias de seguridad está reservada para Administradores.</div>
+
+                <label v-if="isAdmin" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-3 rounded-xl flex items-center justify-between text-xs font-semibold cursor-pointer transition-all">
+                  <span>Restaurar Copia desde Archivo .JSON</span>
+                  <span class="text-blue-400">&uarr; Subir</span>
+                  <input type="file" accept=".json" @change="restoreBackupJSON" class="hidden">
+                </label>
+
+                <div class="pt-4 border-t border-slate-800 flex items-center justify-between" v-if="isAdmin">
+                  <button @click="cargarDatosEjemplo()" class="text-xs text-emerald-400 hover:text-emerald-300 font-semibold underline">
+                    Recargar Datos de Prueba (Demo)
+                  </button>
+                  <button @click="limpiarBaseDatos()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold">
+                    Vaciar Base de Datos
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloque Carga Masiva desde Plantilla Excel / CSV (Solo Admin) -->
+            <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <span v-html="icons.excel"></span>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h3 class="font-bold text-white text-base">Carga Masiva de Equipos y Técnicos por Plantilla Excel</h3>
+                      <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span v-html="icons.shield" class="w-3 h-3"></span> Solo Administrador
+                      </span>
+                    </div>
+                    <p class="text-xs text-slate-400">Descarga plantillas compatibles con Microsoft Excel (.CSV delimitado con punto y coma y codificación UTF-8), llénalas con tus registros y súbelas para importar o actualizar en masa con sincronización en tiempo real.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                <!-- Tarjeta Equipos -->
+                <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                      <span v-html="icons.tool" class="text-emerald-400"></span> Herramientas y Maquinaria
+                    </span>
+                    <span class="text-[11px] text-slate-400 font-mono">{{ totalToolsCount }} registrados</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Carga con códigos, marcas, modelos, series, costos, fechas de adquisición y ubicaciones.</p>
+                  <div class="flex flex-wrap gap-2 pt-1">
+                    <button v-if="isAdmin" @click="downloadToolsTemplate" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all">
+                      <span v-html="icons.excel"></span>
+                      <span>Descargar Plantilla Equipos</span>
+                    </button>
+                    <button v-if="isAdmin" @click="openImportModal('tools')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      <span>Cargar Archivo Equipos</span>
+                    </button>
+                    <div v-if="!isAdmin" class="text-slate-500 text-xs italic">Solo accesible para Administradores.</div>
+                  </div>
+                </div>
+
+                <!-- Tarjeta Técnicos -->
+                <div class="bg-slate-950/70 p-4 rounded-xl border border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-200 text-sm flex items-center gap-2">
+                      <span v-html="icons.technicians" class="text-blue-400"></span> Personal Técnico y Operadores
+                    </span>
+                    <span class="text-[11px] text-slate-400 font-mono">{{ technicians.length }} registrados</span>
+                  </div>
+                  <p class="text-[11px] text-slate-400">Carga con identificación (DNI/Cédula), nombres completos, teléfonos, correos y especialidad.</p>
+                  <div class="flex flex-wrap gap-2 pt-1">
+                    <button v-if="isAdmin" @click="downloadTechsTemplate" class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-all">
+                      <span v-html="icons.excel"></span>
+                      <span>Descargar Plantilla Técnicos</span>
+                    </button>
+                    <button v-if="isAdmin" @click="openImportModal('techs')" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-sm transition-all">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                      <span>Cargar Archivo Técnicos</span>
+                    </button>
+                    <div v-if="!isAdmin" class="text-slate-500 text-xs italic">Solo accesible para Administradores.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloque PWA: Instalación como App Progresiva -->
+            <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                    <span v-html="icons.mobile"></span>
+                  </div>
+                  <div>
+                    <h3 class="font-bold text-white text-base">Aplicación Web Progresiva (PWA Instalable)</h3>
+                    <p class="text-xs text-slate-400">Instala ToolMaster Pro directamente en teléfonos Android, iPhone, iPad, tablets y computadoras sin pasar por tiendas de aplicaciones.</p>
+                  </div>
+                </div>
+                <button 
+                  v-if="canInstallPwa"
+                  @click="installPwa()" 
+                  class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shrink-0 transition-all shadow-sm">
+                  <span v-html="icons.mobile"></span>
+                  <span>Instalar en este Dispositivo</span>
+                </button>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2 border-t border-slate-800 text-xs">
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                  <div class="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>🤖 Android (Chrome / Edge)</span>
+                  </div>
+                  <p class="text-[11px] text-slate-300">
+                    Pulsa el botón <strong>"Instalar App"</strong> o abre el menú de tres puntos (⋮) de Chrome y selecciona <strong>"Instalar aplicación"</strong> o "Agregar a la pantalla principal".
+                  </p>
+                </div>
+
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                  <div class="font-bold text-blue-400 flex items-center gap-1.5">
+                    <span>🍎 iPhone / iPad (Safari)</span>
+                  </div>
+                  <p class="text-[11px] text-slate-300">
+                    Abre la app en Safari, presiona el botón <strong>Compartir</strong> (ícono con flecha hacia arriba) y selecciona <strong>"Agregar a pantalla de inicio"</strong>.
+                  </p>
+                </div>
+
+                <div class="bg-slate-950/70 p-3.5 rounded-xl border border-slate-800 space-y-1.5">
+                  <div class="font-bold text-purple-400 flex items-center gap-1.5">
+                    <span>💻 Windows & Mac (Chrome / Edge)</span>
+                  </div>
+                  <p class="text-[11px] text-slate-300">
+                    Haz clic en el ícono de instalación que aparece al final de la barra de direcciones del navegador o usa el botón <strong>"Instalar App"</strong>.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bloque 3: Datos de la Empresa para Vales -->
+            <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
+              <h3 class="font-bold text-white text-base">Datos de la Empresa (Membrete de Vales Imprimibles)</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
+                <div>
+                  <label class="block text-slate-400 mb-1">Razón Social / Empresa:</label>
+                  <input v-model="company.name" :disabled="isConsulta" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white disabled:opacity-50">
+                </div>
+                <div>
+                  <label class="block text-slate-400 mb-1">NIT / RUC / Identificación Fiscal:</label>
+                  <input v-model="company.nit" :disabled="isConsulta" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white disabled:opacity-50">
+                </div>
+                <div>
+                  <label class="block text-slate-400 mb-1">Jefe / Administrador de Almacén:</label>
+                  <input v-model="company.manager" :disabled="isConsulta" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white disabled:opacity-50">
+                </div>
+                <div>
+                  <label class="block text-slate-400 mb-1">Nombre del Almacén o Bodega:</label>
+                  <input v-model="company.warehouse" :disabled="isConsulta" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white disabled:opacity-50">
+                </div>
+                <div>
+                  <label class="block text-slate-400 mb-1">Dirección:</label>
+                  <input v-model="company.address" :disabled="isConsulta" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white disabled:opacity-50">
+                </div>
+                <div>
+                  <label class="block text-slate-400 mb-1">Teléfono:</label>
+                  <input v-model="company.phone" :disabled="isConsulta" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white disabled:opacity-50">
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </main>
+
+      <!-- ========================================== -->
+      <!-- MODALES DE LA APLICACIÓN                  -->
+      <!-- ========================================== -->
+
+      <!-- MODAL CREAR / EDITAR USUARIO (NUEVO) -->
+      <div v-if="showUserModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">
+              {{ isEditingUser ? 'Editar Usuario: ' + userForm.username : 'Registrar Nuevo Usuario' }}
+            </h3>
+            <button @click="showUserModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Nombre Completo *</label>
+              <input v-model="userForm.name" type="text" placeholder="Ej: Roberto Méndez" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-purple-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Nombre de Usuario (Login) *</label>
+              <input v-model="userForm.username" type="text" placeholder="Ej: rmendez" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-purple-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+              <input v-model="userForm.email" type="email" placeholder="usuario@empresa.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-purple-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Rol / Permisos del Usuario *</label>
+              <select v-model="userForm.role" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-purple-500">
+                <option value="admin">Administrador (Acceso Total)</option>
+                <option value="almacen">Almacenista / Operador (Gestión de equipos, préstamos y taller)</option>
+                <option value="consulta">Consulta / Auditor (Modo solo lectura e impresión)</option>
+              </select>
+            </div>
+
+            <!-- Clave de Acceso -->
+            <div class="pt-2 border-t border-slate-800 space-y-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">
+                  {{ isEditingUser ? 'Nueva Clave de Acceso (Dejar vacío para conservar la actual)' : 'Clave de Acceso (Contraseña) *' }}
+                </label>
+                <input v-model="userForm.password" type="password" placeholder="Mínimo 4 caracteres" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-purple-500">
+              </div>
+
+              <div v-if="userForm.password">
+                <label class="block font-semibold text-slate-300 mb-1">Confirmar Nueva Clave *</label>
+                <input v-model="userForm.confirmPassword" type="password" placeholder="Repite la clave" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-purple-500">
+              </div>
+            </div>
+
+            <!-- Estado Activo -->
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <input type="checkbox" v-model="userForm.active" class="w-4 h-4 rounded text-purple-500">
+              <span class="text-white font-medium">Cuenta de usuario habilitada para iniciar sesión</span>
+            </label>
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showUserModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="saveUser()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-sm">
+              Guardar Usuario
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 1. MODAL NUEVA / EDITAR HERRAMIENTA O MAQUINARIA -->
+      <div v-if="showToolModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">
+              {{ isEditingTool ? 'Editar Equipo: ' + toolForm.code : 'Registrar Nueva Herramienta o Maquinaria' }}
+            </h3>
+            <button @click="showToolModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Código Interno / SKU *</label>
+                <input v-model="toolForm.code" type="text" placeholder="Ej: ROT-001" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono uppercase focus:border-emerald-500">
+              </div>
+
+              <div class="sm:col-span-2">
+                <label class="block font-semibold text-slate-300 mb-1">Nombre del Equipo *</label>
+                <input v-model="toolForm.name" type="text" placeholder="Ej: Rotomartillo SDS-Plus 800W" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Categoría</label>
+                <select v-model="toolForm.category" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+                  <option v-for="c in categories" :key="c" :value="c">{{ c }}</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Marca</label>
+                <input v-model="toolForm.brand" type="text" placeholder="Ej: DeWalt, Bosch" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Modelo</label>
+                <input v-model="toolForm.model" type="text" placeholder="Ej: D25133K" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Número de Serie</label>
+                <input v-model="toolForm.serialNumber" type="text" placeholder="Ej: SN-902810" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Ubicación Física</label>
+                <input v-model="toolForm.location" type="text" placeholder="Ej: Estante A1, Bahía 2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Estado Operativo</label>
+                <select v-model="toolForm.status" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+                  <option value="disponible">Disponible</option>
+                  <option value="prestado">En Préstamo</option>
+                  <option value="mantenimiento">En Mantenimiento</option>
+                  <option value="danado">Dañada / Con Falla</option>
+                  <option value="baja">De Baja</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Costo / Valor Estimado ($)</label>
+                <input v-model.number="toolForm.cost" type="number" step="0.01" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha de Adquisición</label>
+                <input v-model="toolForm.acquisitionDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Notas Técnicas / Accesorios Incluidos</label>
+              <textarea v-model="toolForm.notes" rows="2" placeholder="Especificaciones, accesorios, recomendaciones..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500"></textarea>
+            </div>
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showToolModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="saveTool()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
+              Guardar Equipo
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2. MODAL FICHA TÉCNICA E HISTORIAL DEL EQUIPO -->
+      <div v-if="showToolDetailModal && selectedToolForDetail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="font-mono text-sm font-bold text-emerald-400 bg-emerald-950/40 px-2.5 py-1 rounded border border-emerald-800/40">
+                {{ selectedToolForDetail.code }}
+              </span>
+              <div>
+                <h3 class="text-base font-bold text-white">{{ selectedToolForDetail.name }}</h3>
+                <p class="text-xs text-slate-400">{{ selectedToolForDetail.brand }} {{ selectedToolForDetail.model }}</p>
+              </div>
+            </div>
+            <button @click="showToolDetailModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-6 text-xs">
+            
+            <!-- Ficha Resumen -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div>
+                <span class="text-slate-500 block">Estado Actual:</span>
+                <span :class="getStatusBadge(selectedToolForDetail.status)" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block mt-1">
+                  {{ getStatusLabel(selectedToolForDetail.status) }}
+                </span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">Número de Serie:</span>
+                <span class="font-mono text-white font-bold">{{ selectedToolForDetail.serialNumber || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">Ubicación:</span>
+                <span class="text-white">{{ selectedToolForDetail.location || 'Almacén' }}</span>
+              </div>
+              <div>
+                <span class="text-slate-500 block">Valor Estimado:</span>
+                <span class="text-emerald-400 font-bold">${{ selectedToolForDetail.cost || 0 }}</span>
+              </div>
+            </div>
+
+            <!-- Historial de Préstamos -->
+            <div class="space-y-3">
+              <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                <span v-html="icons.loans"></span> Historial de Asignaciones a Técnicos ({{ toolHistoryLoans.length }})
+              </h4>
+
+              <div v-if="toolHistoryLoans.length === 0" class="p-4 bg-slate-950/50 rounded-xl border border-slate-800 text-slate-500 text-center">
+                No registra préstamos anteriores.
+              </div>
+
+              <div v-else class="space-y-2">
+                <div v-for="l in toolHistoryLoans" :key="l.id" class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span class="font-mono text-emerald-400 font-semibold">{{ l.voucherNumber }}</span>
+                    <span class="text-white font-medium ml-2">{{ l.technicianName }}</span>
+                    <div class="text-[11px] text-slate-400 mt-0.5">
+                      Entregado: {{ l.loanDate }} | Retorno: {{ l.actualReturnDate || 'En posesión del técnico' }}
+                    </div>
+                  </div>
+                  <span :class="l.status === 'activo' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded">
+                    {{ l.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Historial de Mantenimientos -->
+            <div class="space-y-3">
+              <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                <span v-html="icons.maintenance"></span> Historial de Mantenimientos e Intervenciones ({{ toolHistoryMaintenances.length }})
+              </h4>
+
+              <div v-if="toolHistoryMaintenances.length === 0" class="p-4 bg-slate-950/50 rounded-xl border border-slate-800 text-slate-500 text-center">
+                No registra mantenimientos previos.
+              </div>
+
+              <div v-else class="space-y-2">
+                <div v-for="m in toolHistoryMaintenances" :key="m.id" class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
+                  <div class="flex items-center justify-between">
+                    <span class="font-mono text-blue-400 font-semibold">{{ m.code }} ({{ m.type }})</span>
+                    <span class="text-emerald-400 font-bold">${{ m.cost || 0 }}</span>
+                  </div>
+                  <p class="text-slate-300 text-xs">{{ m.description }}</p>
+                  <div class="text-[11px] text-slate-400">
+                    Taller: {{ m.provider }} | Fecha: {{ m.completedDate || m.scheduledDate }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end">
+            <button @click="showToolDetailModal = false" class="px-5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white">
+              Cerrar Ficha
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3. MODAL NUEVA ENTREGA A TÉCNICO (CHECK-OUT) -->
+      <div v-if="showLoanModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white">Despacho de Herramientas y Maquinaria</h3>
+              <p class="text-xs text-slate-400">Genera la salida de almacén y emite el vale de entrega oficial.</p>
+            </div>
+            <button @click="showLoanModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Técnico Receptor *</label>
+              <select v-model="loanForm.technicianId" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+                <option v-for="t in technicians" :key="t.id" :value="t.id">
+                  {{ t.name }} ({{ t.dni }}) - {{ t.role }}
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block font-semibold text-slate-300">
+                  Selecciona las Herramientas o Maquinarias a entregar * ({{ loanForm.selectedToolIds.length }} seleccionadas)
+                </label>
+              </div>
+
+              <div class="max-h-48 overflow-y-auto bg-slate-950 border border-slate-800 rounded-xl p-2 space-y-1.5">
+                <div 
+                  v-for="tool in availableToolsForLoan" 
+                  :key="tool.id" 
+                  @click="toggleToolSelection(tool.id)"
+                  :class="loanForm.selectedToolIds.includes(tool.id) ? 'bg-emerald-950/40 border-emerald-600/60 text-white' : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800'"
+                  class="p-2.5 rounded-lg border flex items-center justify-between cursor-pointer transition-colors">
+                  <div class="flex items-center gap-2">
+                    <span class="w-4 h-4 rounded border flex items-center justify-center text-[10px]" :class="loanForm.selectedToolIds.includes(tool.id) ? 'bg-emerald-600 border-emerald-500 text-white' : 'border-slate-700'">
+                      <span v-if="loanForm.selectedToolIds.includes(tool.id)">✓</span>
+                    </span>
+                    <div>
+                      <span class="font-mono font-bold text-emerald-400">{{ tool.code }}</span>
+                      <span class="font-medium ml-1.5">{{ tool.name }}</span>
+                      <span class="text-[11px] text-slate-400 block">{{ tool.brand }} • SN: {{ tool.serialNumber }}</span>
+                    </div>
+                  </div>
+                  <span class="text-[11px] bg-slate-800 px-2 py-0.5 rounded text-slate-400">{{ tool.location }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha Estimada de Devolución *</label>
+                <input v-model="loanForm.expectedReturnDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Condición de Entrega</label>
+                <select v-model="loanForm.deliveryCondition" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+                  <option value="Excelente">Excelente (Como nueva)</option>
+                  <option value="Buena">Buena (Operativa 100%)</option>
+                  <option value="Regular">Regular (Con desgaste superficial)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Obra / Proyecto / Motivo del Préstamo</label>
+              <input v-model="loanForm.project" type="text" placeholder="Ej: Obra Autopista Oriente, Mantenimiento Planta 2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Observaciones / Accesorios Entregados</label>
+              <textarea v-model="loanForm.deliveryNotes" rows="2" placeholder="Ej: Se entrega con maletín, cargador y 2 baterías..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500"></textarea>
+            </div>
+
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showLoanModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="saveLoan()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5">
+              <span>&check;</span> Confirmar y Emitir Vale
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 4. MODAL REGISTRAR DEVOLUCIÓN (CHECK-IN) -->
+      <div v-if="showReturnModal && returnForm.loan" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white">Recepción y Devolución de Herramientas</h3>
+              <p class="text-xs text-slate-400">Vale: {{ returnForm.loan.voucherNumber }} - {{ returnForm.loan.technicianName }}</p>
+            </div>
+            <button @click="showReturnModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            
+            <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+              <span class="text-slate-400 text-[11px] block font-semibold">Equipos que se están devolviendo:</span>
+              <div v-for="t in returnForm.loan.toolSnapshot" :key="t.id" class="text-white font-medium">
+                • <span class="font-mono text-emerald-400">{{ t.code }}</span> - {{ t.name }}
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha y Hora de Retorno</label>
+                <input v-model="returnForm.returnDate" type="text" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Condición al Recibir *</label>
+                <select v-model="returnForm.returnCondition" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+                  <option value="Excelente">Excelente (Sin novedades)</option>
+                  <option value="Buena">Buena (Desgaste normal)</option>
+                  <option value="Dañada / Con Falla">Dañada / Requiere Reparación</option>
+                  <option value="Incompleta">Incompleta (Faltan piezas/accesorios)</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Observaciones de la Devolución</label>
+              <textarea v-model="returnForm.returnNotes" rows="2" placeholder="Detalla el estado en que se recibe, suciedad, accesorios..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500"></textarea>
+            </div>
+
+            <div class="bg-amber-950/20 border border-amber-800/40 p-3.5 rounded-xl space-y-2">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" v-model="returnForm.sendToMaintenance" class="w-4 h-4 rounded text-amber-500 focus:ring-0">
+                <span class="font-bold text-amber-300">¿Enviar equipo directamente a Mantenimiento Correctivo?</span>
+              </label>
+              <p class="text-[11px] text-slate-400">
+                Si el equipo falló o sufrió daños en obra, se creará de inmediato una orden de taller y no quedará disponible para otros técnicos.
+              </p>
+              <input v-if="returnForm.sendToMaintenance" v-model="returnForm.maintenanceNotes" type="text" placeholder="Falla detectada para la orden de taller..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-white">
+            </div>
+
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showReturnModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="processReturn()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
+              Confirmar Recepción
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 5. MODAL PROGRAMAR MANTENIMIENTO -->
+      <div v-if="showMaintenanceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">
+              Programar Mantenimiento ({{ maintForm.code }})
+            </h3>
+            <button @click="showMaintenanceModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Herramienta o Maquinaria *</label>
+              <select v-model="maintForm.toolId" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500">
+                <option v-for="t in tools" :key="t.id" :value="t.id">
+                  {{ t.code }} - {{ t.name }} ({{ t.brand }})
+                </option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Tipo de Servicio *</label>
+                <select v-model="maintForm.type" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500">
+                  <option value="preventivo">Preventivo (Programado)</option>
+                  <option value="correctivo">Correctivo (Reparación de falla)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha Programada *</label>
+                <input v-model="maintForm.scheduledDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Taller o Proveedor de Servicio</label>
+                <input v-model="maintForm.provider" type="text" placeholder="Ej: Taller Interno, Bosch Service" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Costo Estimado ($)</label>
+                <input v-model.number="maintForm.cost" type="number" step="0.01" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Motivo o Trabajo Requerido *</label>
+              <textarea v-model="maintForm.description" rows="3" placeholder="Describe los síntomas, fallas detectadas o la pauta preventiva..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500"></textarea>
+            </div>
+
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showMaintenanceModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="saveMaintenance()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm">
+              Guardar Orden de Taller
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 6. MODAL FINALIZAR MANTENIMIENTO -->
+      <div v-if="showCompleteMaintModal && completeMaintForm.maint" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white">Completar y Cerrar Mantenimiento</h3>
+              <p class="text-xs text-slate-400">{{ completeMaintForm.maint.code }} - {{ completeMaintForm.maint.toolName }}</p>
+            </div>
+            <button @click="showCompleteMaintModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha de Realización</label>
+                <input v-model="completeMaintForm.completedDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Costo Final Real ($)</label>
+                <input v-model.number="completeMaintForm.finalCost" type="number" step="0.01" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Trabajo Realizado / Procedimiento Aplicado</label>
+              <textarea v-model="completeMaintForm.workDone" rows="2" placeholder="Ej: Cambio de escobillas de carbón, lubricación de engranajes y calibración..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500"></textarea>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Repuestos Reemplazados</label>
+              <input v-model="completeMaintForm.partsReplaced" type="text" placeholder="Ej: Filtro de aire, juego de carbones, rodamiento 608Z" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Sugerir Próximo Mantenimiento Preventivo</label>
+              <input v-model="completeMaintForm.nextMaintenanceDate" type="date" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+            </div>
+
+            <label class="flex items-center gap-2 cursor-pointer bg-slate-950 p-3 rounded-xl border border-slate-800">
+              <input type="checkbox" v-model="completeMaintForm.setToolAvailable" class="w-4 h-4 rounded text-emerald-500">
+              <span class="text-white font-medium">Reincorporar la herramienta al catálogo como "Disponible"</span>
+            </label>
+
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showCompleteMaintModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="finalizeMaintenance()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
+              Cerrar Orden y Liberar Equipo
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 7. MODAL CREAR / EDITAR TÉCNICO -->
+      <div v-if="showTechModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">
+              {{ isEditingTech ? 'Editar Técnico' : 'Registrar Nuevo Técnico' }}
+            </h3>
+            <button @click="showTechModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Nombre Completo *</label>
+              <input v-model="techForm.name" type="text" placeholder="Ej: Carlos Andrés Morales" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Identificación / DNI / Cédula *</label>
+              <input v-model="techForm.dni" type="text" placeholder="Ej: CC-10948271" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500">
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Cargo / Especialidad</label>
+              <input v-model="techForm.role" type="text" placeholder="Ej: Técnico Mecánico Líder, Electricista" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Teléfono</label>
+                <input v-model="techForm.phone" type="text" placeholder="312-000-0000" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Correo Electrónico</label>
+                <input v-model="techForm.email" type="email" placeholder="correo@empresa.com" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end gap-2">
+            <button @click="showTechModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="saveTechnician()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm">
+              Guardar Técnico
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 8. MODAL DETALLE Y HISTORIAL DEL TÉCNICO -->
+      <div v-if="showTechDetailModal && selectedTechForDetail" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center font-bold text-white text-sm">
+                {{ selectedTechForDetail.name.split(' ').map(n => n[0]).slice(0, 2).join('') }}
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">{{ selectedTechForDetail.name }}</h3>
+                <p class="text-xs text-slate-400">{{ selectedTechForDetail.role }} • {{ selectedTechForDetail.dni }}</p>
+              </div>
+            </div>
+            <button @click="showTechDetailModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-5 text-xs">
+            
+            <div>
+              <h4 class="font-bold text-white text-sm mb-2 flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-amber-400"></span> Equipos actualmente en su posesión ({{ techActiveLoansList.length }} vales activos)
+              </h4>
+
+              <div v-if="techActiveLoansList.length === 0" class="p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-slate-500 text-center">
+                Este técnico no tiene herramientas pendientes por devolver.
+              </div>
+
+              <div v-else class="space-y-2">
+                <div v-for="loan in techActiveLoansList" :key="loan.id" class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span class="font-mono text-emerald-400 font-bold">{{ loan.voucherNumber }}</span>
+                    <div class="space-y-0.5 mt-1">
+                      <div v-for="t in loan.toolSnapshot" :key="t.id" class="text-white">
+                        • {{ t.code }} - {{ t.name }}
+                      </div>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-1">
+                      Fecha límite retorno: <span class="text-white font-medium">{{ loan.expectedReturnDate }}</span>
+                    </div>
+                  </div>
+                  <button v-if="!isConsulta" @click="showTechDetailModal = false; openReturnModal(loan)" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
+                    Devolver
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="font-bold text-white text-sm mb-2">Historial de Préstamos Completados ({{ techCompletedLoansList.length }})</h4>
+              <div v-if="techCompletedLoansList.length === 0" class="p-4 bg-slate-950/60 rounded-xl border border-slate-800 text-slate-500 text-center">
+                No tiene devoluciones registradas en el historial.
+              </div>
+              <div v-else class="space-y-2 max-h-48 overflow-y-auto">
+                <div v-for="loan in techCompletedLoansList" :key="loan.id" class="p-2.5 bg-slate-950 rounded-lg border border-slate-800/80 flex items-center justify-between text-[11px]">
+                  <div>
+                    <span class="font-mono text-emerald-400">{{ loan.voucherNumber }}</span>
+                    <span class="text-slate-300 ml-2">Retornado el {{ loan.actualReturnDate }}</span>
+                  </div>
+                  <span class="text-slate-400">Condición: {{ loan.returnCondition || 'Ok' }}</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="p-5 border-t border-slate-800 flex items-center justify-end">
+            <button @click="showTechDetailModal = false" class="px-5 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white">
+              Cerrar
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 9. MODAL VISTA PREVIA Y BOTÓN PARA IMPRIMIR VALE -->
+      <div v-if="showVoucherModal && currentVoucher" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-2 text-emerald-400">
+              <span v-html="icons.print"></span>
+              <h3 class="font-bold text-white text-sm">Vale Oficial de Entrega / Devolución</h3>
+            </div>
+            <button @click="showVoucherModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-6 overflow-y-auto bg-slate-950 text-xs space-y-4 font-mono text-slate-300 border m-4 rounded-xl border-slate-800">
+            <div class="text-center pb-3 border-b border-slate-800">
+              <h2 class="text-sm font-bold text-white uppercase">{{ company.name }}</h2>
+              <p class="text-[11px] text-slate-400">NIT: {{ company.nit }} | {{ company.warehouse }}</p>
+              <div class="mt-2 text-xs font-bold text-emerald-400">COMPROBANTE: {{ currentVoucher.voucherNumber }}</div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-2 text-[11px]">
+              <div><strong>Técnico Receptor:</strong> {{ currentVoucher.technicianName }}</div>
+              <div><strong>Identificación:</strong> {{ currentVoucher.technicianDni }}</div>
+              <div><strong>Fecha Despacho:</strong> {{ currentVoucher.loanDate }}</div>
+              <div><strong>Fecha Retorno:</strong> {{ currentVoucher.expectedReturnDate }}</div>
+              <div class="col-span-2"><strong>Proyecto / Obra:</strong> {{ currentVoucher.project }}</div>
+            </div>
+
+            <div class="border-t border-b border-slate-800 py-2 space-y-1">
+              <div class="font-bold text-white text-[11px]">EQUIPOS ENTREGADOS:</div>
+              <div v-for="t in currentVoucher.toolSnapshot" :key="t.id" class="flex justify-between text-[11px]">
+                <span>{{ t.code }} - {{ t.name }}</span>
+                <span>SN: {{ t.serialNumber }}</span>
+              </div>
+            </div>
+
+            <div class="text-[10px] text-slate-400 italic">
+              * El técnico receptor asume la custodia y cuidado de las herramientas arriba descritas y se compromete a reportar cualquier anomalía o daño al almacén.
+            </div>
+          </div>
+
+          <div class="p-4 border-t border-slate-800 flex items-center justify-between">
+            <button @click="showVoucherModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800">
+              Cerrar Vista
+            </button>
+
+            <button @click="triggerPrint()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-2">
+              <span v-html="icons.print"></span> Imprimir Comprobante (Físico / PDF)
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+    </template>
+
+    <!-- ============================================================== -->
+    <!-- 10. MODAL: CONFIGURACIÓN Y CONEXIÓN SUPABASE (NUBE & REALTIME) -->
+    <!-- ============================================================== -->
+    <div v-if="showSupabaseModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+        
+        <!-- Cabecera del Modal -->
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-md shadow-emerald-900/30">
+              <span v-html="icons.cloud"></span>
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-base">Base de Datos en Tiempo Real (Supabase)</h3>
+              <p class="text-xs text-slate-400">Sincronización en la nube PostgreSQL con WebSockets</p>
+            </div>
+          </div>
+          <button @click="showSupabaseModal = false" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors" v-html="icons.close"></button>
+        </div>
+
+        <!-- Contenido scrolleable -->
+        <div class="p-6 overflow-y-auto space-y-5 text-xs">
+          
+          <!-- Banner de Estado de Conexión -->
+          <div v-if="supabaseConnected" class="p-4 rounded-xl border bg-emerald-950/60 border-emerald-500/40 text-emerald-300 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 font-bold text-sm">
+                <span class="flex h-2.5 w-2.5 relative">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span>🟢 CONECTADO EN TIEMPO REAL</span>
+              </div>
+              <span class="text-[10px] bg-emerald-900/80 px-2 py-0.5 rounded-full font-mono font-semibold border border-emerald-700/50">PostgreSQL</span>
+            </div>
+            <p class="text-[11px] text-emerald-200/90">
+              Tu aplicación está conectada con Supabase. Cualquier cambio en herramientas, préstamos o mantenimientos se refleja al instante en todos tus dispositivos.
+            </p>
+            <div class="pt-1 flex items-center gap-4 text-[10px] text-emerald-400/80 font-mono">
+              <span>• Canal WebSockets: Activo</span>
+              <span>• Sincronización Automática: Habilitada</span>
+            </div>
+          </div>
+
+          <div v-else-if="supabaseForm.status === 'error'" class="p-4 rounded-xl border bg-rose-950/60 border-rose-500/40 text-rose-300 space-y-1.5">
+            <div class="flex items-center gap-2 font-bold text-sm">
+              <span v-html="icons.alert" class="shrink-0 text-rose-400"></span>
+              <span>🔴 Error al conectar con Supabase</span>
+            </div>
+            <p class="text-[11px] text-rose-200/90">
+              {{ supabaseForm.errorMessage }}
+            </p>
+            <p class="text-[10px] text-rose-300/80 italic">
+              Asegúrate de haber ejecutado el script <strong>supabase_schema.sql</strong> en el SQL Editor de tu proyecto Supabase y que la clave sea la Anon Public Key.
+            </p>
+          </div>
+
+          <div v-else class="p-4 rounded-xl border bg-amber-950/40 border-amber-500/30 text-amber-200 space-y-1.5">
+            <div class="flex items-center gap-2 font-bold text-sm text-amber-300">
+              <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+              <span>🟡 Modo Local Offline (Sin conexión a la nube)</span>
+            </div>
+            <p class="text-[11px] text-amber-200/90">
+              Actualmente los datos se guardan únicamente en el almacenamiento local de este navegador. Conecta Supabase para tener respaldo seguro en la nube y acceso compartido para todo tu equipo.
+            </p>
+          </div>
+
+          <!-- Formulario de Credenciales -->
+          <form @submit.prevent="saveSupabaseConfig" class="space-y-4 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">
+                Project URL de Supabase (URL del Proyecto)
+              </label>
+              <input 
+                v-model="supabaseForm.url" 
+                type="url" 
+                placeholder="https://xxxxxxxxxxxxxxxxxxxx.supabase.co" 
+                required
+                class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono text-xs transition-colors">
+              <p class="text-[10px] text-slate-500 mt-1">Lo encuentras en Supabase > Project Settings > API > Project URL</p>
+            </div>
+
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">
+                Project API Key (Anon Public Key)
+              </label>
+              <textarea 
+                v-model="supabaseForm.anonKey" 
+                rows="3"
+                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." 
+                required
+                class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono text-[11px] transition-colors"></textarea>
+              <p class="text-[10px] text-slate-500 mt-0.5">La clave pública con etiqueta <strong class="text-slate-400">anon</strong> o <strong class="text-slate-400">public</strong>.</p>
+            </div>
+
+            <div class="flex items-center gap-3 pt-2">
+              <button 
+                type="submit" 
+                :disabled="supabaseConnecting"
+                class="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition-all">
+                <span v-if="supabaseConnecting" class="animate-spin" v-html="icons.sync"></span>
+                <span v-else v-html="icons.check"></span>
+                <span>{{ supabaseConnecting ? 'Verificando...' : (supabaseConnected ? 'Actualizar Conexión' : 'Probar y Conectar a Supabase') }}</span>
+              </button>
+
+              <button 
+                v-if="supabaseConnected" 
+                type="button" 
+                @click="disconnectSupabase"
+                class="bg-slate-800 hover:bg-rose-950/60 hover:text-rose-300 hover:border-rose-800 text-slate-300 border border-slate-700 font-semibold py-2.5 px-4 rounded-xl transition-all">
+                Desconectar
+              </button>
+            </div>
+          </form>
+
+          <!-- Herramientas de Sincronización Manual y Migración -->
+          <div v-if="supabaseConnected" class="space-y-3 bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+            <h4 class="font-bold text-white text-xs flex items-center gap-2">
+              <span v-html="icons.sync" class="text-emerald-400"></span>
+              <span>Herramientas de Sincronización Manual</span>
+            </h4>
+            <p class="text-[11px] text-slate-400">
+              Si acabas de configurar Supabase por primera vez, puedes subir todos los datos que tienes guardados localmente a la nube con un solo clic.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+              <button 
+                type="button" 
+                @click="uploadLocalDataToSupabase" 
+                :disabled="isSyncingCloud"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs transition-all disabled:opacity-50">
+                <span v-html="icons.cloud" class="text-emerald-400"></span>
+                <span>{{ isSyncingCloud ? 'Subiendo...' : 'Subir Datos Locales a Supabase' }}</span>
+              </button>
+
+              <button 
+                type="button" 
+                @click="fetchAllFromSupabase" 
+                :disabled="isSyncingCloud"
+                class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 p-2.5 rounded-xl flex items-center justify-center gap-2 font-semibold text-xs transition-all disabled:opacity-50">
+                <span v-html="icons.sync" class="text-blue-400"></span>
+                <span>{{ isSyncingCloud ? 'Descargando...' : 'Recargar Datos desde Supabase' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Guía Rápida de Configuración (3 Pasos) -->
+          <div class="border border-slate-800 rounded-xl p-4 bg-slate-950/40 space-y-2.5 text-[11px]">
+            <div class="font-bold text-slate-300 flex items-center gap-1.5">
+              <span v-html="icons.shield" class="text-emerald-400"></span>
+              <span>¿Cómo obtener las credenciales de Supabase?</span>
+            </div>
+            <ol class="list-decimal list-inside space-y-1 text-slate-400">
+              <li>Crea una cuenta y un proyecto gratis en <a href="https://supabase.com" target="_blank" class="text-emerald-400 hover:underline font-semibold">supabase.com</a>.</li>
+              <li>Abre el menú <strong>SQL Editor</strong>, abre el archivo <code class="text-emerald-300 bg-slate-900 px-1 py-0.5 rounded">supabase_schema.sql</code> de tu proyecto, copia su contenido, pégalo en una nueva consulta y haz clic en <strong>Run</strong>.</li>
+              <li>Ve a <strong>Project Settings > Data API</strong> (o API), copia la <strong>Project URL</strong> y la <strong>anon public key</strong>, y pégalas en este formulario.</li>
+            </ol>
+            <p class="text-[10px] text-slate-500 italic pt-1 border-t border-slate-800/80">
+              💡 Tip: También puedes pegar las credenciales en el archivo <code class="text-slate-400">supabase-config.js</code> antes de desplegar en Vercel para que carguen automáticamente para todos los usuarios.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Footer del Modal -->
+        <div class="p-4 border-t border-slate-800 flex items-center justify-end bg-slate-950/50">
+          <button @click="showSupabaseModal = false" class="px-5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors">
+            Cerrar
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- MODAL: CARGA MASIVA MEDIANTE PLANTILLA EXCEL (CSV) - SOLO ADMIN -->
+    <!-- ============================================================== -->
+    <div v-if="showImportModal && isAdmin" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-4xl w-full shadow-2xl overflow-hidden my-8 animate-fade-in flex flex-col max-h-[90vh]">
+        
+        <!-- Header -->
+        <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-950/70">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <span v-html="icons.excel"></span>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-white text-lg">
+                  Carga Masiva de {{ importType === 'tools' ? 'Herramientas y Maquinaria' : 'Personal Técnico' }}
+                </h3>
+                <span class="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span v-html="icons.shield" class="w-3 h-3"></span> Solo Administrador
+                </span>
+              </div>
+              <p class="text-xs text-slate-400">Descarga la plantilla oficial en Excel, complétala con tus datos y súbela aquí para importar de forma automática.</p>
+            </div>
+          </div>
+          
+          <button @click="showImportModal = false" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors">
+            <span v-html="icons.close"></span>
+          </button>
+        </div>
+
+        <!-- Selector de Tipo de Carga dentro del Modal -->
+        <div class="px-6 pt-4 pb-3 border-b border-slate-800/80 bg-slate-950/40 flex items-center justify-between flex-wrap gap-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-300">Catálogo a cargar:</span>
+            <div class="inline-flex bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+              <button 
+                type="button" 
+                @click="openImportModal('tools')" 
+                :class="importType === 'tools' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'" 
+                class="text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+                <span v-html="icons.tool"></span>
+                <span>Equipos / Herramientas</span>
+              </button>
+              <button 
+                type="button" 
+                @click="openImportModal('techs')" 
+                :class="importType === 'techs' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white'" 
+                class="text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+                <span v-html="icons.technicians"></span>
+                <span>Personal Técnico</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Botón Descargar Plantilla -->
+          <button 
+            type="button" 
+            v-if="importType === 'tools'" 
+            @click="downloadToolsTemplate" 
+            class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all">
+            <span v-html="icons.excel"></span>
+            <span>Descargar Plantilla Oficial (.CSV)</span>
+          </button>
+          <button 
+            type="button" 
+            v-else 
+            @click="downloadTechsTemplate" 
+            class="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all">
+            <span v-html="icons.excel"></span>
+            <span>Descargar Plantilla Oficial (.CSV)</span>
+          </button>
+        </div>
+
+        <!-- Contenido desplazable -->
+        <div class="p-6 space-y-5 overflow-y-auto flex-1">
+
+          <!-- Paso 1 & 2: Información e Input de archivo -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Instrucciones -->
+            <div class="md:col-span-1 bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2.5 text-xs text-slate-400">
+              <h4 class="font-bold text-slate-200 text-xs flex items-center gap-1.5">
+                <span>📋 Instrucciones</span>
+              </h4>
+              <ol class="list-decimal list-inside space-y-1.5 leading-relaxed text-[11px]">
+                <li>Descarga la plantilla con el botón superior.</li>
+                <li>Ábrela en <strong>Microsoft Excel</strong> o Google Sheets.</li>
+                <li>Agrega tus filas respetando los nombres de columna.</li>
+                <li>Guarda como <strong>CSV delimitado por comas o punto y coma</strong>.</li>
+                <li>Sube el archivo aquí para previsualizar antes de guardar.</li>
+              </ol>
+              <p class="text-[10px] text-emerald-400 font-semibold pt-1 border-t border-slate-800">
+                ✓ Soporta caracteres especiales y tildes (UTF-8).
+              </p>
+            </div>
+
+            <!-- Zona de Subida de Archivo -->
+            <div class="md:col-span-2 flex flex-col justify-center">
+              <label class="border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/40 hover:bg-slate-950/80 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center space-y-2">
+                <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-300">
+                  <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                </div>
+                <div>
+                  <span class="text-xs font-bold text-white block">Haz clic para seleccionar tu archivo Excel/CSV</span>
+                  <span class="text-[11px] text-slate-400">Formatos soportados: .csv, .txt</span>
+                </div>
+                <div v-if="importState.fileName" class="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-3 py-1 rounded-lg">
+                  Archivo cargado: {{ importState.fileName }}
+                </div>
+                <input type="file" accept=".csv, .txt, text/csv" @change="handleImportFile" class="hidden">
+              </label>
+
+              <!-- Opción: Actualizar existentes -->
+              <div class="mt-3 flex items-center gap-2">
+                <input 
+                  type="checkbox" 
+                  id="chkUpdateExisting" 
+                  v-model="importState.updateExisting" 
+                  class="rounded bg-slate-800 border-slate-700 text-emerald-600 focus:ring-emerald-500 h-4 w-4">
+                <label for="chkUpdateExisting" class="text-xs text-slate-300 select-none cursor-pointer">
+                  Actualizar registros si el {{ importType === 'tools' ? 'Código' : 'DNI/Cédula' }} ya existe en la base de datos
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Previsualización de Datos -->
+          <div v-if="importState.previewRows.length > 0" class="space-y-3 pt-2">
+            
+            <!-- Resumen de Validación -->
+            <div class="flex items-center justify-between flex-wrap gap-2 bg-slate-950/80 p-3 rounded-xl border border-slate-800">
+              <div class="flex items-center gap-3">
+                <span class="text-xs font-bold text-slate-200">Resultados del análisis:</span>
+                <span class="text-[11px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                  ✓ {{ importState.validCount }} listos para importar
+                </span>
+                <span v-if="importState.invalidCount > 0" class="text-[11px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-2.5 py-0.5 rounded-full font-bold">
+                  ⚠ {{ importState.invalidCount }} con errores (omitidos)
+                </span>
+              </div>
+              <span class="text-[11px] text-slate-400">Total analizado: {{ importState.rawCount }} registros</span>
+            </div>
+
+            <!-- Tabla de Previsualización -->
+            <div class="border border-slate-800 rounded-xl overflow-hidden max-h-64 overflow-y-auto">
+              
+              <!-- Si son Equipos -->
+              <table v-if="importType === 'tools'" class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400 sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2.5 px-3">Fila</th>
+                    <th class="py-2.5 px-3">Estado</th>
+                    <th class="py-2.5 px-3">Código</th>
+                    <th class="py-2.5 px-3">Nombre del Equipo</th>
+                    <th class="py-2.5 px-3">Categoría</th>
+                    <th class="py-2.5 px-3">Marca / Modelo</th>
+                    <th class="py-2.5 px-3">Costo ($)</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 bg-slate-900/50">
+                  <tr v-for="row in importState.previewRows" :key="row.rowNum" :class="!row.isValid ? 'bg-rose-950/20' : (row.isExisting ? 'bg-blue-950/15' : '')">
+                    <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">#{{ row.rowNum }}</td>
+                    <td class="py-2 px-3">
+                      <span v-if="!row.isValid" class="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full font-bold" :title="row.errorMsg">
+                        ✕ {{ row.errorMsg }}
+                      </span>
+                      <span v-else-if="row.isExisting" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">
+                        ↻ {{ importState.updateExisting ? 'Actualizar' : 'Ignorar existente' }}
+                      </span>
+                      <span v-else class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                        + Nuevo
+                      </span>
+                    </td>
+                    <td class="py-2 px-3 font-mono font-bold text-slate-200">{{ row.data.code || '-' }}</td>
+                    <td class="py-2 px-3 text-slate-200 font-medium">{{ row.data.name || '-' }}</td>
+                    <td class="py-2 px-3 text-slate-400 text-[11px]">{{ row.data.category || '-' }}</td>
+                    <td class="py-2 px-3 text-slate-400 text-[11px]">{{ row.data.brand }} {{ row.data.model }}</td>
+                    <td class="py-2 px-3 text-emerald-400 font-mono text-[11px]">${{ (row.data.cost || 0).toLocaleString() }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- Si son Técnicos -->
+              <table v-else class="w-full text-left text-xs">
+                <thead class="bg-slate-950 text-slate-400 sticky top-0 border-b border-slate-800">
+                  <tr>
+                    <th class="py-2.5 px-3">Fila</th>
+                    <th class="py-2.5 px-3">Estado</th>
+                    <th class="py-2.5 px-3">Identificación (DNI)</th>
+                    <th class="py-2.5 px-3">Nombre Completo</th>
+                    <th class="py-2.5 px-3">Teléfono</th>
+                    <th class="py-2.5 px-3">Correo</th>
+                    <th class="py-2.5 px-3">Especialidad / Cargo</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60 bg-slate-900/50">
+                  <tr v-for="row in importState.previewRows" :key="row.rowNum" :class="!row.isValid ? 'bg-rose-950/20' : (row.isExisting ? 'bg-blue-950/15' : '')">
+                    <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">#{{ row.rowNum }}</td>
+                    <td class="py-2 px-3">
+                      <span v-if="!row.isValid" class="text-[10px] bg-rose-500/20 text-rose-400 px-2 py-0.5 rounded-full font-bold" :title="row.errorMsg">
+                        ✕ {{ row.errorMsg }}
+                      </span>
+                      <span v-else-if="row.isExisting" class="text-[10px] bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-bold">
+                        ↻ {{ importState.updateExisting ? 'Actualizar' : 'Ignorar existente' }}
+                      </span>
+                      <span v-else class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">
+                        + Nuevo
+                      </span>
+                    </td>
+                    <td class="py-2 px-3 font-mono font-bold text-slate-200">{{ row.data.dni || '-' }}</td>
+                    <td class="py-2 px-3 text-slate-200 font-medium">{{ row.data.name || '-' }}</td>
+                    <td class="py-2 px-3 text-slate-400 text-[11px]">{{ row.data.phone || '-' }}</td>
+                    <td class="py-2 px-3 text-slate-400 text-[11px]">{{ row.data.email || '-' }}</td>
+                    <td class="py-2 px-3 text-emerald-400 text-[11px] font-medium">{{ row.data.role || '-' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Footer del Modal -->
+        <div class="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/70">
+          <div class="text-[11px] text-slate-400 flex items-center gap-1.5">
+            <span v-html="icons.database" class="text-emerald-400 w-3.5 h-3.5"></span>
+            <span>Los datos se sincronizan con Supabase en tiempo real si la nube está activa.</span>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <button 
+              type="button" 
+              @click="showImportModal = false" 
+              class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800 transition-colors">
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              @click="executeImport" 
+              :disabled="importState.validCount === 0 || importState.isImporting" 
+              class="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-lg transition-all flex items-center gap-2">
+              <span v-html="icons.check" v-if="!importState.isImporting"></span>
+              <span v-else class="animate-spin text-sm">⏳</span>
+              <span>{{ importState.isImporting ? 'Importando registros...' : ('Confirmar e Importar ' + importState.validCount + ' Registros') }}</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICACIONES FLOTANTES -->
+    <div v-if="toast.show" class="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl shadow-xl border animate-fade-in"
+      :class="toast.type === 'error' ? 'bg-rose-950 border-rose-800 text-rose-200' : (toast.type === 'warning' ? 'bg-amber-950 border-amber-800 text-amber-200' : 'bg-emerald-950 border-emerald-800 text-emerald-200')">
+      <span v-html="icons.check" v-if="toast.type === 'success'"></span>
+      <span v-html="icons.alert" v-else></span>
+      <span class="text-xs font-semibold">{{ toast.message }}</span>
+      <button @click="toast.show = false" class="ml-2 text-slate-400 hover:text-white">✕</button>
+    </div>
+
+  </div>
+
+  <!-- ============================================================== -->
+  <!-- SECCIÓN FORMAL PARA IMPRESIÓN DIRECTA DEL VALE (WINDOW.PRINT)  -->
+  <!-- ============================================================== -->
+  <div id="printable-voucher" v-if="currentVoucher">
+    <div style="font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #000; max-width: 750px; margin: 0 auto; padding: 20px;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
+        <div>
+          <h1 style="font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">{{ company.name }}</h1>
+          <p style="margin: 3px 0 0 0; font-size: 9.5pt; color: #333;">NIT: {{ company.nit }} | {{ company.warehouse }}</p>
+          <p style="margin: 2px 0 0 0; font-size: 9pt; color: #555;">{{ company.address }} - Tel: {{ company.phone }}</p>
+        </div>
+        <div style="text-align: right;">
+          <div style="border: 2px solid #000; padding: 6px 12px; font-weight: bold; font-size: 12pt;">
+            VALE No. {{ currentVoucher.voucherNumber }}
+          </div>
+          <p style="margin: 4px 0 0 0; font-size: 8.5pt;">Fecha: {{ currentVoucher.loanDate }}</p>
+        </div>
+      </div>
+
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 18px; font-size: 10pt;">
+        <tbody>
+          <tr>
+            <td style="padding: 4px 0; width: 22%; font-weight: bold;">Técnico Receptor:</td>
+            <td style="padding: 4px 0; width: 40%;">{{ currentVoucher.technicianName }}</td>
+            <td style="padding: 4px 0; width: 18%; font-weight: bold;">Identificación:</td>
+            <td style="padding: 4px 0; width: 20%;">{{ currentVoucher.technicianDni }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Proyecto / Obra:</td>
+            <td style="padding: 4px 0;">{{ currentVoucher.project || 'Uso General de Mantenimiento' }}</td>
+            <td style="padding: 4px 0; font-weight: bold;">Retorno Previsto:</td>
+            <td style="padding: 4px 0; font-weight: bold;">{{ currentVoucher.expectedReturnDate }}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; font-weight: bold;">Condición Entrega:</td>
+            <td style="padding: 4px 0;">{{ currentVoucher.deliveryCondition || 'Excelente' }}</td>
+            <td style="padding: 4px 0; font-weight: bold;">Despachado por:</td>
+            <td style="padding: 4px 0;">{{ currentVoucher.dispatcher || company.manager }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="font-size: 11pt; font-weight: bold; margin: 15px 0 8px 0; text-transform: uppercase;">
+        Detalle de Herramientas y Maquinaria Asignada:
+      </h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 9.5pt;" class="print-table">
+        <thead>
+          <tr style="background-color: #eee; border: 1px solid #000;">
+            <th style="padding: 6px; border: 1px solid #000; text-align: left; width: 15%;">Código</th>
+            <th style="padding: 6px; border: 1px solid #000; text-align: left; width: 45%;">Descripción del Equipo</th>
+            <th style="padding: 6px; border: 1px solid #000; text-align: left; width: 25%;">No. Serie / Modelo</th>
+            <th style="padding: 6px; border: 1px solid #000; text-align: center; width: 15%;">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="t in currentVoucher.toolSnapshot" :key="t.id">
+            <td style="padding: 6px; border: 1px solid #000; font-weight: bold;">{{ t.code }}</td>
+            <td style="padding: 6px; border: 1px solid #000;">{{ t.name }}</td>
+            <td style="padding: 6px; border: 1px solid #000;">{{ t.serialNumber || 'N/A' }}</td>
+            <td style="padding: 6px; border: 1px solid #000; text-align: center;">Operativo</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div style="font-size: 8.5pt; color: #333; margin-bottom: 30px; line-height: 1.3;">
+        <p style="margin: 0 0 6px 0;"><strong>Observaciones:</strong> {{ currentVoucher.deliveryNotes || 'Herramientas entregadas probadas y en perfecto estado funcional.' }}</p>
+        <p style="margin: 0; font-style: italic;">
+          * El técnico receptor declara haber recibido las herramientas y equipos en buen estado físico y funcional, comprometiéndose a su uso adecuado según los manuales de operación, su custodia responsable y devolución en la fecha pactada. Cualquier avería o anomalía debe reportarse de inmediato al departamento de almacén.
+        </p>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; margin-top: 60px; padding: 0 30px;">
+        <div style="width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 6px;">
+          <p style="margin: 0; font-size: 10pt; font-weight: bold;">{{ currentVoucher.dispatcher || company.manager }}</p>
+          <p style="margin: 2px 0 0 0; font-size: 8.5pt; color: #555;">Entregado por (Almacén Central)</p>
+        </div>
+
+        <div style="width: 40%; text-align: center; border-top: 1px solid #000; padding-top: 6px;">
+          <p style="margin: 0; font-size: 10pt; font-weight: bold;">{{ currentVoucher.technicianName }}</p>
+          <p style="margin: 2px 0 0 0; font-size: 8.5pt; color: #555;">Recibido a conformidad (Técnico)</p>
+          <p style="margin: 2px 0 0 0; font-size: 8pt; color: #777;">C.C. {{ currentVoucher.technicianDni }}</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/
+  supabase-js@2.45.4/dist/umd/supabase.js"></script>
+  <script src="app.js"></script>
+  <script src="supabase-bridge.js"></script>
+</body>
+</html>

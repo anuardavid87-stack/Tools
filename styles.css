@@ -1,0 +1,450 @@
+/* ToolMaster Pro - Estilos personalizados e impresión */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --bg-verde-claro: #eaf7ee;
+  --bg-verde-subtle: #f0fdf4;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: #0f172a;
+  color: #f1f5f9;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Transiciones suaves */
+.transition-all-custom {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Efectos de vidrio (Glassmorphism sutil) */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+}
+
+/* ========================================================================== */
+/* TEMA VERDE CLARO CON TEXTO NEGRO (MÁXIMO CONTRASTE SOLICITADO)            */
+/* ========================================================================== */
+
+html.theme-verde-claro,
+body.theme-verde-claro,
+.theme-verde-claro #app {
+  background-color: #eaf7ee !important; /* Verde claro suave, fresco y relajante */
+  color: #000000 !important; /* Texto negro absoluto */
+}
+
+/* Tipografía general en negro absoluto para máximo contraste */
+.theme-verde-claro h1,
+.theme-verde-claro h2,
+.theme-verde-claro h3,
+.theme-verde-claro h4,
+.theme-verde-claro h5,
+.theme-verde-claro h6,
+.theme-verde-claro p,
+.theme-verde-claro label,
+.theme-verde-claro table,
+.theme-verde-claro th,
+.theme-verde-claro td,
+.theme-verde-claro strong,
+.theme-verde-claro b {
+  color: #000000 !important;
+}
+
+/* Anular todas las clases de texto Tailwind grises o blancas en modo verde claro */
+.theme-verde-claro .text-white:not(.badge-white):not(.btn-primary *):not(button.bg-emerald-600 *):not(button.bg-blue-600 *):not(button.bg-purple-600 *):not(button.bg-amber-600 *),
+.theme-verde-claro .text-slate-100,
+.theme-verde-claro .text-slate-200,
+.theme-verde-claro .text-slate-300,
+.theme-verde-claro .text-slate-400,
+.theme-verde-claro .text-slate-500,
+.theme-verde-claro .text-slate-600,
+.theme-verde-claro .text-slate-700 {
+  color: #000000 !important;
+}
+
+/* Cabecera Superior en Verde Claro con Letras Negras de Alto Contraste */
+.theme-verde-claro header {
+  background-color: #d1fae5 !important; /* Verde menta claro corporativo */
+  border-bottom: 2px solid #a7f3d0 !important;
+  color: #000000 !important;
+  box-shadow: 0 4px 6px -1px rgba(5, 150, 105, 0.1) !important;
+}
+
+.theme-verde-claro header h1,
+.theme-verde-claro header span,
+.theme-verde-claro header p,
+.theme-verde-claro header a,
+.theme-verde-claro header div {
+  color: #000000 !important;
+}
+
+.theme-verde-claro header nav {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #a7f3d0 !important;
+}
+
+.theme-verde-claro header nav button {
+  color: #000000 !important;
+  font-weight: 700 !important;
+}
+
+.theme-verde-claro header nav button:hover {
+  background-color: #a7f3d0 !important;
+  color: #000000 !important;
+}
+
+.theme-verde-claro header nav button.bg-slate-800 {
+  background-color: #6ee7b7 !important;
+  color: #000000 !important;
+  font-weight: 800 !important;
+  border: 1px solid #34d399 !important;
+}
+
+.theme-verde-claro header .bg-slate-950\/80 {
+  background-color: #ffffff !important;
+  border-color: #a7f3d0 !important;
+}
+
+.theme-verde-claro header .bg-slate-800 {
+  background-color: #a7f3d0 !important;
+  border-color: #6ee7b7 !important;
+  color: #000000 !important;
+}
+
+/* Pantalla de Login en Verde Claro con Letras Negras */
+.theme-verde-claro .login-bg {
+  background: linear-gradient(135deg, #bbf7d0 0%, #eaf7ee 50%, #d1fae5 100%) !important;
+}
+
+.theme-verde-claro .login-card {
+  background-color: #ffffff !important;
+  border: 2px solid #a7f3d0 !important;
+  box-shadow: 0 20px 25px -5px rgba(5, 150, 105, 0.15) !important;
+}
+
+.theme-verde-claro .login-card h1,
+.theme-verde-claro .login-card h2,
+.theme-verde-claro .login-card p,
+.theme-verde-claro .login-card label,
+.theme-verde-claro .login-card span,
+.theme-verde-claro .login-card div {
+  color: #000000 !important;
+}
+
+/* Tarjetas y Paneles Principales */
+.theme-verde-claro .bg-slate-900 {
+  background-color: #ffffff !important;
+  border: 1.5px solid #a7f3d0 !important;
+  color: #000000 !important;
+  box-shadow: 0 2px 4px 0 rgba(5, 150, 105, 0.08) !important;
+}
+
+.theme-verde-claro .bg-slate-950,
+.theme-verde-claro .bg-slate-950\/60,
+.theme-verde-claro .bg-slate-950\/70,
+.theme-verde-claro .bg-slate-950\/80 {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #d1fae5 !important;
+  color: #000000 !important;
+}
+
+.theme-verde-claro .bg-slate-800:not(header *) {
+  background-color: #d1fae5 !important;
+  color: #000000 !important;
+  border: 1px solid #a7f3d0 !important;
+  font-weight: 700 !important;
+}
+
+.theme-verde-claro .bg-slate-800:hover:not(header *) {
+  background-color: #a7f3d0 !important;
+  color: #000000 !important;
+}
+
+/* Bordes y Divisores */
+.theme-verde-claro .border-slate-800,
+.theme-verde-claro .border-slate-800\/80,
+.theme-verde-claro .border-slate-800\/60,
+.theme-verde-claro .border-slate-700 {
+  border-color: #a7f3d0 !important;
+}
+
+.theme-verde-claro .divide-slate-800\/60 > * + * {
+  border-color: #cbd5e1 !important;
+}
+
+/* Tablas en fondo claro con texto negro */
+.theme-verde-claro table thead {
+  background-color: #bbf7d0 !important;
+  border-bottom: 2px solid #86efac !important;
+}
+
+.theme-verde-claro table thead th {
+  color: #000000 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}
+
+.theme-verde-claro table tbody tr {
+  color: #000000 !important;
+}
+
+.theme-verde-claro table tbody tr:hover {
+  background-color: #dcfce7 !important;
+}
+
+.theme-verde-claro table td {
+  color: #000000 !important;
+  font-weight: 500 !important;
+}
+
+/* Formularios: Inputs, Selects y Textareas con texto negro nítido */
+.theme-verde-claro input:not([type="checkbox"]),
+.theme-verde-claro select,
+.theme-verde-claro textarea {
+  background-color: #ffffff !important;
+  border: 1.5px solid #94a3b8 !important;
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+.theme-verde-claro input::placeholder,
+.theme-verde-claro textarea::placeholder {
+  color: #4b5563 !important;
+  font-weight: 500 !important;
+}
+
+.theme-verde-claro input:focus,
+.theme-verde-claro select:focus,
+.theme-verde-claro textarea:focus {
+  border-color: #059669 !important;
+  color: #000000 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Modales */
+.theme-verde-claro .fixed .bg-slate-900 {
+  background-color: #ffffff !important;
+  border: 2px solid #a7f3d0 !important;
+  color: #000000 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.theme-verde-claro .fixed .border-b,
+.theme-verde-claro .fixed .border-t {
+  border-color: #cbd5e1 !important;
+}
+
+/* Badges con texto negro de alto contraste sobre fondo pastel */
+.theme-verde-claro .bg-emerald-500\/15,
+.theme-verde-claro .bg-emerald-500\/20,
+.theme-verde-claro .bg-emerald-950\/40 {
+  background-color: #bbf7d0 !important;
+  color: #000000 !important;
+  border-color: #86efac !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .bg-amber-500\/15,
+.theme-verde-claro .bg-amber-500\/20,
+.theme-verde-claro .bg-amber-950\/40 {
+  background-color: #fef08a !important;
+  color: #000000 !important;
+  border-color: #fde047 !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .bg-blue-500\/15,
+.theme-verde-claro .bg-blue-500\/20,
+.theme-verde-claro .bg-blue-950\/40 {
+  background-color: #bfdbfe !important;
+  color: #000000 !important;
+  border-color: #93c5fd !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .bg-rose-500\/15,
+.theme-verde-claro .bg-rose-500\/20,
+.theme-verde-claro .bg-rose-950\/40 {
+  background-color: #fecdd3 !important;
+  color: #000000 !important;
+  border-color: #fda4af !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .bg-purple-500\/15,
+.theme-verde-claro .bg-purple-500\/20,
+.theme-verde-claro .bg-purple-900\/60 {
+  background-color: #e9d5ff !important;
+  color: #000000 !important;
+  border-color: #d8b4fe !important;
+  font-weight: 800 !important;
+}
+
+/* Códigos destacados con colores oscuros legibles */
+.theme-verde-claro .text-emerald-400,
+.theme-verde-claro .text-emerald-300 {
+  color: #065f46 !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .text-blue-400,
+.theme-verde-claro .text-blue-300 {
+  color: #1e40af !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .text-amber-400,
+.theme-verde-claro .text-amber-300 {
+  color: #92400e !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .text-rose-400,
+.theme-verde-claro .text-rose-300 {
+  color: #9f1239 !important;
+  font-weight: 800 !important;
+}
+
+.theme-verde-claro .text-purple-400,
+.theme-verde-claro .text-purple-300 {
+  color: #581c87 !important;
+  font-weight: 800 !important;
+}
+
+/* Botones principales de acción con alto contraste */
+.theme-verde-claro button.bg-emerald-600 {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  border: 1px solid #047857 !important;
+}
+
+.theme-verde-claro button.bg-emerald-600:hover {
+  background-color: #047857 !important;
+}
+
+.theme-verde-claro button.bg-emerald-600 span {
+  color: #ffffff !important;
+}
+
+.theme-verde-claro button.bg-blue-600 {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.theme-verde-claro button.bg-purple-600 {
+  background-color: #9333ea !important;
+  color: #ffffff !important;
+}
+
+/* Scrollbars en Verde Claro */
+.theme-verde-claro ::-webkit-scrollbar-track {
+  background: #eaf7ee;
+}
+.theme-verde-claro ::-webkit-scrollbar-thumb {
+  background: #a7f3d0;
+}
+.theme-verde-claro ::-webkit-scrollbar-thumb:hover {
+  background: #6ee7b7;
+}
+
+/* Reglas de Impresión para Vales de Entrega */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .no-print,
+  nav,
+  header,
+  aside,
+  .app-sidebar,
+  .app-header,
+  .toast-container,
+  button,
+  .modal-backdrop,
+  .tab-content-screen {
+    display: none !important;
+  }
+
+  #printable-voucher {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+  }
+
+  .print-border {
+    border: 1px solid #111827 !important;
+  }
+
+  .print-border-b {
+    border-bottom: 1px solid #9ca3af !important;
+  }
+
+  .print-bg-gray {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .print-table th, 
+  .print-table td {
+    border: 1px solid #d1d5db !important;
+    padding: 6px 8px !important;
+    font-size: 9.5pt !important;
+  }
+
+  .print-signature-box {
+    border-top: 1px dashed #4b5563 !important;
+    margin-top: 60px !important;
+    padding-top: 8px !important;
+  }
+}
+
+/* Estilo para pantalla normal del vale */
+#printable-voucher {
+  display: none;
+}
