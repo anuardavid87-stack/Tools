@@ -1,9 +1,9 @@
-﻿/**
+/**
  * ToolMaster Pro - Progressive Web App (PWA) Service Worker
  * Proporciona soporte offline completo, caché de recursos estáticos y bypass para llamadas en vivo a Supabase.
  */
 
-const CACHE_NAME = 'toolmaster-pro-v1.2';
+const CACHE_NAME = 'toolmaster-pro-v1.3';
 
 const STATIC_ASSETS = [
   './',
