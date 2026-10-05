@@ -139,13 +139,15 @@ const SEED_DATA = {
       cost: 4500,
       notes: 'Mantenimiento de aceite cada 250 horas de uso',
       requiresPeriodicMaintenance: true,
+      maintenancePeriod: 'trimestral',
       maintenancePeriodDays: 90,
-      lastMaintenanceDate: '2026-07-15',
-      nextMaintenanceDate: '2026-10-13',
+      lastMaintenanceDate: '2026-06-15',
+      nextMaintenanceDate: '2026-09-13', // Vencido para generar alerta
       requiresPeriodicTesting: true,
+      testingPeriod: '15_dias',
       testingPeriodDays: 15,
       lastTestingDate: '2026-09-10',
-      nextTestingDate: '2026-09-25'
+      nextTestingDate: '2026-09-25' // Vencido para generar alerta
     },
     {
       id: 'tool_3',
@@ -161,13 +163,15 @@ const SEED_DATA = {
       cost: 38000,
       notes: 'Requiere operador certificado con licencia C2',
       requiresPeriodicMaintenance: true,
+      maintenancePeriod: 'semestral',
       maintenancePeriodDays: 180,
       lastMaintenanceDate: '2026-03-20',
-      nextMaintenanceDate: '2026-09-16',
+      nextMaintenanceDate: '2026-09-16', // Vencido para generar alerta
       requiresPeriodicTesting: true,
+      testingPeriod: '1_mes',
       testingPeriodDays: 30,
-      lastTestingDate: '2026-09-12',
-      nextTestingDate: '2026-10-12'
+      lastTestingDate: '2026-09-01',
+      nextTestingDate: '2026-10-01' // Vencido para generar alerta
     },
     {
       id: 'tool_4',
@@ -228,7 +232,7 @@ const SEED_DATA = {
     {
       id: 'tool_8',
       code: 'BAI-008',
-      name: 'Apisonador Tipo Bailarina 4 Tiempos',
+      name: 'Apisonador Tipo Bailarina 4 Tiempos - Motor Honda',
       category: 'Maquinaria Pesada',
       brand: 'Wacker Neuson',
       model: 'BS50-4s',
@@ -237,7 +241,17 @@ const SEED_DATA = {
       location: 'Patio de Maquinaria - Bahía 1',
       acquisitionDate: '2024-06-30',
       cost: 2900,
-      notes: 'Equipo clave para compactación en zanjas'
+      notes: 'Equipo clave para compactación en zanjas. Motor Honda GX100',
+      requiresPeriodicMaintenance: true,
+      maintenancePeriod: 'mensual',
+      maintenancePeriodDays: 30,
+      lastMaintenanceDate: '2026-08-25',
+      nextMaintenanceDate: '2026-09-24', // Vencido para generar alerta
+      requiresPeriodicTesting: true,
+      testingPeriod: '15_dias',
+      testingPeriodDays: 15,
+      lastTestingDate: '2026-09-15',
+      nextTestingDate: '2026-09-30' // Vencido para generar alerta
     },
     {
       id: 'tool_9',
@@ -279,7 +293,17 @@ const SEED_DATA = {
       location: 'Taller Central',
       acquisitionDate: '2023-10-15',
       cost: 1450,
-      notes: 'Mantenimiento preventivo anual y cambio de aceite de cabezal'
+      notes: 'Mantenimiento preventivo anual y cambio de aceite de cabezal',
+      requiresPeriodicMaintenance: true,
+      maintenancePeriod: 'anual',
+      maintenancePeriodDays: 365,
+      lastMaintenanceDate: '2025-09-20',
+      nextMaintenanceDate: '2026-09-20', // Vencido para generar alerta
+      requiresPeriodicTesting: true,
+      testingPeriod: '3_meses',
+      testingPeriodDays: 90,
+      lastTestingDate: '2026-06-25',
+      nextTestingDate: '2026-09-23' // Vencido para generar alerta
     },
     {
       id: 'tool_12',
@@ -553,53 +577,83 @@ const app = createApp({
           const parsed = JSON.parse(stored);
           users.value = parsed.users && parsed.users.length > 0 ? parsed.users : JSON.parse(JSON.stringify(SEED_DATA.users));
           tools.value = (parsed.tools || []).map(t => {
+            // Mapeo seguro de periodicidades
+            let maintPeriod = t.maintenancePeriod;
+            if (!maintPeriod && t.maintenancePeriodDays) {
+              if (t.maintenancePeriodDays === 30) maintPeriod = 'mensual';
+              else if (t.maintenancePeriodDays === 90) maintPeriod = 'trimestral';
+              else if (t.maintenancePeriodDays === 180) maintPeriod = 'semestral';
+              else if (t.maintenancePeriodDays === 365) maintPeriod = 'anual';
+              else maintPeriod = 'trimestral';
+            }
+
+            let testPeriod = t.testingPeriod;
+            if (!testPeriod && t.testingPeriodDays) {
+              if (t.testingPeriodDays === 15) testPeriod = '15_dias';
+              else if (t.testingPeriodDays === 30) testPeriod = '1_mes';
+              else if (t.testingPeriodDays === 90) testPeriod = '3_meses';
+              else testPeriod = '15_dias';
+            }
+
             const tool = {
               requiresPeriodicMaintenance: Boolean(t.requiresPeriodicMaintenance),
-              maintenancePeriodDays: Number(t.maintenancePeriodDays) || 0,
+              maintenancePeriod: maintPeriod || 'trimestral',
+              maintenancePeriodDays: Number(t.maintenancePeriodDays) || (maintPeriod === 'mensual' ? 30 : maintPeriod === 'semestral' ? 180 : maintPeriod === 'anual' ? 365 : 90),
               lastMaintenanceDate: t.lastMaintenanceDate || '',
               nextMaintenanceDate: t.nextMaintenanceDate || '',
               requiresPeriodicTesting: Boolean(t.requiresPeriodicTesting),
-              testingPeriodDays: Number(t.testingPeriodDays) || 0,
+              testingPeriod: testPeriod || '15_dias',
+              testingPeriodDays: Number(t.testingPeriodDays) || (testPeriod === '1_mes' ? 30 : testPeriod === '3_meses' ? 90 : 15),
               lastTestingDate: t.lastTestingDate || '',
               nextTestingDate: t.nextTestingDate || '',
               ...t
             };
-            if (tool.code === 'GEN-002' && !tool.requiresPeriodicMaintenance) {
+
+            // Asegurar que demo data tenga las opciones activas
+            if (tool.code === 'GEN-002') {
               tool.requiresPeriodicMaintenance = true;
+              tool.maintenancePeriod = 'trimestral';
               tool.maintenancePeriodDays = 90;
-              tool.lastMaintenanceDate = '2026-07-15';
-              tool.nextMaintenanceDate = '2026-10-13';
+              tool.lastMaintenanceDate = tool.lastMaintenanceDate || '2026-06-15';
+              tool.nextMaintenanceDate = tool.nextMaintenanceDate || '2026-09-13';
               tool.requiresPeriodicTesting = true;
+              tool.testingPeriod = '15_dias';
               tool.testingPeriodDays = 15;
-              tool.lastTestingDate = '2026-09-10';
-              tool.nextTestingDate = '2026-09-25'; // Prueba vencida para alerta
-            } else if (tool.code === 'MIN-003' && !tool.requiresPeriodicMaintenance) {
+              tool.lastTestingDate = tool.lastTestingDate || '2026-09-10';
+              tool.nextTestingDate = tool.nextTestingDate || '2026-09-25';
+            } else if (tool.code === 'MIN-003') {
               tool.requiresPeriodicMaintenance = true;
+              tool.maintenancePeriod = 'semestral';
               tool.maintenancePeriodDays = 180;
-              tool.lastMaintenanceDate = '2026-03-20';
-              tool.nextMaintenanceDate = '2026-09-16'; // Mantenimiento vencido para alerta
+              tool.lastMaintenanceDate = tool.lastMaintenanceDate || '2026-03-20';
+              tool.nextMaintenanceDate = tool.nextMaintenanceDate || '2026-09-16';
               tool.requiresPeriodicTesting = true;
+              tool.testingPeriod = '1_mes';
               tool.testingPeriodDays = 30;
-              tool.lastTestingDate = '2026-09-12';
-              tool.nextTestingDate = '2026-10-12';
-            } else if (tool.code === 'BAI-008' && !tool.requiresPeriodicMaintenance) {
+              tool.lastTestingDate = tool.lastTestingDate || '2026-09-01';
+              tool.nextTestingDate = tool.nextTestingDate || '2026-10-01';
+            } else if (tool.code === 'BAI-008') {
               tool.requiresPeriodicMaintenance = true;
-              tool.maintenancePeriodDays = 90;
-              tool.lastMaintenanceDate = '2026-08-01';
-              tool.nextMaintenanceDate = '2026-10-30';
+              tool.maintenancePeriod = 'mensual';
+              tool.maintenancePeriodDays = 30;
+              tool.lastMaintenanceDate = tool.lastMaintenanceDate || '2026-08-25';
+              tool.nextMaintenanceDate = tool.nextMaintenanceDate || '2026-09-24';
               tool.requiresPeriodicTesting = true;
+              tool.testingPeriod = '15_dias';
               tool.testingPeriodDays = 15;
-              tool.lastTestingDate = '2026-09-28';
-              tool.nextTestingDate = '2026-10-13';
-            } else if (tool.code === 'COM-011' && !tool.requiresPeriodicMaintenance) {
+              tool.lastTestingDate = tool.lastTestingDate || '2026-09-15';
+              tool.nextTestingDate = tool.nextTestingDate || '2026-09-30';
+            } else if (tool.code === 'COM-011') {
               tool.requiresPeriodicMaintenance = true;
-              tool.maintenancePeriodDays = 120;
-              tool.lastMaintenanceDate = '2026-06-15';
-              tool.nextMaintenanceDate = '2026-10-13';
+              tool.maintenancePeriod = 'anual';
+              tool.maintenancePeriodDays = 365;
+              tool.lastMaintenanceDate = tool.lastMaintenanceDate || '2025-09-20';
+              tool.nextMaintenanceDate = tool.nextMaintenanceDate || '2026-09-20';
               tool.requiresPeriodicTesting = true;
-              tool.testingPeriodDays = 15;
-              tool.lastTestingDate = '2026-09-25';
-              tool.nextTestingDate = '2026-10-10';
+              tool.testingPeriod = '3_meses';
+              tool.testingPeriodDays = 90;
+              tool.lastTestingDate = tool.lastTestingDate || '2026-06-25';
+              tool.nextTestingDate = tool.nextTestingDate || '2026-09-23';
             }
             return tool;
           });
@@ -681,10 +735,12 @@ const app = createApp({
       cost: Number(t.cost) || 0,
       notes: t.notes || '',
       requires_periodic_maintenance: t.requiresPeriodicMaintenance === true,
+      maintenance_period: t.maintenancePeriod || 'trimestral',
       maintenance_period_days: Number(t.maintenancePeriodDays) || 0,
       last_maintenance_date: t.lastMaintenanceDate || '',
       next_maintenance_date: t.nextMaintenanceDate || '',
       requires_periodic_testing: t.requiresPeriodicTesting === true,
+      testing_period: t.testingPeriod || '15_dias',
       testing_period_days: Number(t.testingPeriodDays) || 0,
       last_testing_date: t.lastTestingDate || '',
       next_testing_date: t.nextTestingDate || '',
@@ -705,10 +761,12 @@ const app = createApp({
       cost: Number(r.cost) || 0,
       notes: r.notes || '',
       requiresPeriodicMaintenance: r.requires_periodic_maintenance === true,
+      maintenancePeriod: r.maintenance_period || 'trimestral',
       maintenancePeriodDays: Number(r.maintenance_period_days) || 0,
       lastMaintenanceDate: r.last_maintenance_date || '',
       nextMaintenanceDate: r.next_maintenance_date || '',
       requiresPeriodicTesting: r.requires_periodic_testing === true,
+      testingPeriod: r.testing_period || '15_dias',
       testingPeriodDays: Number(r.testing_period_days) || 0,
       lastTestingDate: r.last_testing_date || '',
       nextTestingDate: r.next_testing_date || '',
@@ -1665,17 +1723,62 @@ const app = createApp({
     // =========================================================================
     // MÓDULO DE MANTENIMIENTO PERIÓDICO, ALERTAS, PRUEBAS Y CORRECTIVOS
     // =========================================================================
-    const maintenanceTab = ref('alertas'); // 'alertas' | 'correctivos' | 'periodicos' | 'historial' | 'pendientes'
+    const maintenanceTab = ref('pendientes'); // 'pendientes' | 'catalogo' | 'correctivos' | 'historial' | 'alertas'
+    const maintSubTab = ref('pendientes'); // 'pendientes' | 'catalogo' | 'correctivos' | 'historial'
     const maintenanceSearch = ref('');
     const maintenanceAlertFilter = ref('all'); // 'all' | 'maint_overdue' | 'maint_upcoming' | 'test_overdue' | 'test_upcoming' | 'corrective'
+
+    // Módulo Separado de Pruebas de Calentamiento
+    const heatingSubTab = ref('pendientes'); // 'pendientes' | 'catalogo' | 'historial'
+    const heatingSearch = ref('');
+
+    // Helpers de periodicidades exactas solicitadas por el usuario
+    const getMaintenancePeriodDays = (period) => {
+      switch (period) {
+        case 'mensual': return 30;
+        case 'trimestral': return 90;
+        case 'semestral': return 180;
+        case 'anual': return 365;
+        default: return 90;
+      }
+    };
+
+    const getMaintenancePeriodLabel = (period) => {
+      switch (period) {
+        case 'mensual': return 'Mensual (30 días)';
+        case 'trimestral': return 'Trimestral (90 días)';
+        case 'semestral': return 'Semestral (180 días)';
+        case 'anual': return 'Anual (365 días)';
+        default: return 'Trimestral (90 días)';
+      }
+    };
+
+    const getTestingPeriodDays = (period) => {
+      switch (period) {
+        case '15_dias': return 15;
+        case '1_mes': return 30;
+        case '3_meses': return 90;
+        default: return 15;
+      }
+    };
+
+    const getTestingPeriodLabel = (period) => {
+      switch (period) {
+        case '15_dias': return 'Cada 15 días';
+        case '1_mes': return 'Cada 1 mes (30 días)';
+        case '3_meses': return 'Cada 3 meses (90 días)';
+        default: return 'Cada 15 días';
+      }
+    };
 
     // Análisis integral de estado de cada equipo (mantenimientos y pruebas)
     const toolsWithMaintenanceInfo = computed(() => {
       return tools.value.map(tool => {
         // Mantenimiento preventivo
         let effectiveNextMaint = tool.nextMaintenanceDate;
+        const maintDays = tool.maintenancePeriodDays || getMaintenancePeriodDays(tool.maintenancePeriod || 'trimestral');
         if (!effectiveNextMaint && tool.requiresPeriodicMaintenance && (tool.lastMaintenanceDate || tool.acquisitionDate)) {
-          effectiveNextMaint = addDaysToDate(tool.lastMaintenanceDate || tool.acquisitionDate, tool.maintenancePeriodDays || 90);
+          effectiveNextMaint = addDaysToDate(tool.lastMaintenanceDate || tool.acquisitionDate, maintDays);
         }
         let daysToMaint = null;
         let maintStatus = 'none'; // 'none' | 'overdue' | 'urgent' | 'upcoming' | 'ok'
@@ -1687,10 +1790,11 @@ const app = createApp({
           else maintStatus = 'ok';
         }
 
-        // Pruebas operativas periódicas (arranque de generadores, motores, etc.)
+        // Pruebas operativas y calentamiento periódico (arranque de plantas, generadores, motores)
         let effectiveNextTest = tool.nextTestingDate;
+        const testDays = tool.testingPeriodDays || getTestingPeriodDays(tool.testingPeriod || '15_dias');
         if (!effectiveNextTest && tool.requiresPeriodicTesting && (tool.lastTestingDate || tool.acquisitionDate)) {
-          effectiveNextTest = addDaysToDate(tool.lastTestingDate || tool.acquisitionDate, tool.testingPeriodDays || 15);
+          effectiveNextTest = addDaysToDate(tool.lastTestingDate || tool.acquisitionDate, testDays);
         }
         let daysToTest = null;
         let testStatus = 'none'; // 'none' | 'overdue' | 'urgent' | 'ok'
@@ -1749,6 +1853,62 @@ const app = createApp({
           const prioOrder = { urgente: 1, alta: 2, media: 3, baja: 4 };
           return (prioOrder[a.priority] || 3) - (prioOrder[b.priority] || 3);
         });
+    });
+
+    // Listas y Contadores Separados para Mantenimiento y Calentamiento
+    const allPreventiveTools = computed(() => {
+      return toolsWithMaintenanceInfo.value.filter(t => t.requiresPeriodicMaintenance);
+    });
+
+    const pendingMaintenanceTools = computed(() => {
+      return toolsWithMaintenanceInfo.value
+        .filter(t => t.requiresPeriodicMaintenance && (t.maintStatus === 'overdue' || t.maintStatus === 'urgent'))
+        .sort((a, b) => (a.daysToMaint || 0) - (b.daysToMaint || 0));
+    });
+
+    const pendingMaintenanceAlertsCount = computed(() => {
+      return overdueMaintenances.value.length + activeCorrectives.value.length;
+    });
+
+    const allHeatingTools = computed(() => {
+      return toolsWithMaintenanceInfo.value.filter(t => t.requiresPeriodicTesting);
+    });
+
+    const pendingHeatingTools = computed(() => {
+      return toolsWithMaintenanceInfo.value
+        .filter(t => t.requiresPeriodicTesting && (t.testStatus === 'overdue' || t.testStatus === 'urgent'))
+        .sort((a, b) => (a.daysToTest || 0) - (b.daysToTest || 0));
+    });
+
+    const pendingHeatingAlertsCount = computed(() => {
+      return overdueTests.value.length;
+    });
+
+    const heatingHistory = computed(() => {
+      const q = heatingSearch.value.trim().toLowerCase();
+      return maintenances.value.filter(m => {
+        const isHeatOrTest = m.type === 'calentamiento' || m.type === 'prueba';
+        if (!isHeatOrTest) return false;
+        return !q || (
+          (m.toolCode && m.toolCode.toLowerCase().includes(q)) ||
+          (m.toolName && m.toolName.toLowerCase().includes(q)) ||
+          (m.description && m.description.toLowerCase().includes(q)) ||
+          (m.workDone && m.workDone.toLowerCase().includes(q)) ||
+          (m.responsible && m.responsible.toLowerCase().includes(q))
+        );
+      });
+    });
+
+    const filteredHeatingTools = computed(() => {
+      const q = heatingSearch.value.trim().toLowerCase();
+      return allHeatingTools.value.filter(t => {
+        return !q || (
+          t.code.toLowerCase().includes(q) ||
+          t.name.toLowerCase().includes(q) ||
+          t.category.toLowerCase().includes(q) ||
+          t.brand.toLowerCase().includes(q)
+        );
+      });
     });
 
     const totalMaintenanceAlerts = computed(() => {
@@ -1941,23 +2101,46 @@ const app = createApp({
       acquisitionDate: new Date().toISOString().split('T')[0],
       cost: 0,
       notes: '',
-      // Mantenimiento y pruebas periódicas
+      // Mantenimiento preventivo periódico
       requiresPeriodicMaintenance: false,
+      maintenancePeriod: 'trimestral', // 'mensual' | 'trimestral' | 'semestral' | 'anual'
       maintenancePeriodDays: 90,
       lastMaintenanceDate: '',
       nextMaintenanceDate: '',
+      // Pruebas y calentamiento periódico (plantas, generadores, motores)
       requiresPeriodicTesting: false,
+      testingPeriod: '15_dias', // '15_dias' | '1_mes' | '3_meses'
       testingPeriodDays: 15,
       lastTestingDate: '',
       nextTestingDate: ''
     });
 
+    const setMaintenancePeriod = (period) => {
+      toolForm.maintenancePeriod = period;
+      toolForm.maintenancePeriodDays = getMaintenancePeriodDays(period);
+      updateToolCalculatedDates();
+    };
+
+    const setTestingPeriod = (period) => {
+      toolForm.testingPeriod = period;
+      toolForm.testingPeriodDays = getTestingPeriodDays(period);
+      updateToolCalculatedDates();
+    };
+
     const updateToolCalculatedDates = () => {
-      if (toolForm.requiresPeriodicMaintenance && toolForm.lastMaintenanceDate && toolForm.maintenancePeriodDays > 0) {
-        toolForm.nextMaintenanceDate = addDaysToDate(toolForm.lastMaintenanceDate, toolForm.maintenancePeriodDays);
+      if (toolForm.requiresPeriodicMaintenance) {
+        if (!toolForm.maintenancePeriod) toolForm.maintenancePeriod = 'trimestral';
+        toolForm.maintenancePeriodDays = getMaintenancePeriodDays(toolForm.maintenancePeriod);
+        if (toolForm.lastMaintenanceDate) {
+          toolForm.nextMaintenanceDate = addDaysToDate(toolForm.lastMaintenanceDate, toolForm.maintenancePeriodDays);
+        }
       }
-      if (toolForm.requiresPeriodicTesting && toolForm.lastTestingDate && toolForm.testingPeriodDays > 0) {
-        toolForm.nextTestingDate = addDaysToDate(toolForm.lastTestingDate, toolForm.testingPeriodDays);
+      if (toolForm.requiresPeriodicTesting) {
+        if (!toolForm.testingPeriod) toolForm.testingPeriod = '15_dias';
+        toolForm.testingPeriodDays = getTestingPeriodDays(toolForm.testingPeriod);
+        if (toolForm.lastTestingDate) {
+          toolForm.nextTestingDate = addDaysToDate(toolForm.lastTestingDate, toolForm.testingPeriodDays);
+        }
       }
     };
 
@@ -1983,10 +2166,12 @@ const app = createApp({
         cost: 0,
         notes: '',
         requiresPeriodicMaintenance: false,
+        maintenancePeriod: 'trimestral',
         maintenancePeriodDays: 90,
         lastMaintenanceDate: '',
         nextMaintenanceDate: '',
         requiresPeriodicTesting: false,
+        testingPeriod: '15_dias',
         testingPeriodDays: 15,
         lastTestingDate: '',
         nextTestingDate: ''
@@ -2000,18 +2185,229 @@ const app = createApp({
         return;
       }
       isEditingTool.value = true;
+      const maintP = tool.maintenancePeriod || (tool.maintenancePeriodDays === 30 ? 'mensual' : tool.maintenancePeriodDays === 180 ? 'semestral' : tool.maintenancePeriodDays === 365 ? 'anual' : 'trimestral');
+      const testP = tool.testingPeriod || (tool.testingPeriodDays === 30 ? '1_mes' : tool.testingPeriodDays === 90 ? '3_meses' : '15_dias');
       Object.assign(toolForm, {
         requiresPeriodicMaintenance: false,
-        maintenancePeriodDays: 90,
+        maintenancePeriod: maintP,
+        maintenancePeriodDays: tool.maintenancePeriodDays || getMaintenancePeriodDays(maintP),
         lastMaintenanceDate: '',
         nextMaintenanceDate: '',
         requiresPeriodicTesting: false,
-        testingPeriodDays: 15,
+        testingPeriod: testP,
+        testingPeriodDays: tool.testingPeriodDays || getTestingPeriodDays(testP),
         lastTestingDate: '',
         nextTestingDate: '',
         ...JSON.parse(JSON.stringify(tool))
       });
       showToolModal.value = true;
+    };
+
+    // =========================================================================
+    // ACCIONES RÁPIDAS "REALIZAR": CUADRO SENCILLO PARA HOJA DE VIDA
+    // =========================================================================
+    // 1. Modal Cuadro Sencillo: Realizar Mantenimiento Preventivo
+    const showPerformMaintenanceModal = ref(false);
+    const performMaintForm = reactive({
+      tool: null,
+      date: '',
+      description: '',
+      responsible: '',
+      cost: 0,
+      calculatedNextDate: ''
+    });
+
+    const openPerformMaintenance = (tool) => {
+      if (isConsulta.value) {
+        notify('Tu rol es de solo lectura. No puedes registrar mantenimientos.', 'warning');
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      const period = tool.maintenancePeriod || 'trimestral';
+      const days = tool.maintenancePeriodDays || getMaintenancePeriodDays(period);
+      const nextDate = addDaysToDate(today, days);
+
+      performMaintForm.tool = tool;
+      performMaintForm.date = today;
+      performMaintForm.description = '';
+      performMaintForm.responsible = currentUser.value?.name || company.manager;
+      performMaintForm.cost = 0;
+      performMaintForm.calculatedNextDate = nextDate;
+      showPerformMaintenanceModal.value = true;
+    };
+
+    const updatePerformMaintNextDate = () => {
+      if (!performMaintForm.tool || !performMaintForm.date) return;
+      const period = performMaintForm.tool.maintenancePeriod || 'trimestral';
+      const days = performMaintForm.tool.maintenancePeriodDays || getMaintenancePeriodDays(period);
+      performMaintForm.calculatedNextDate = addDaysToDate(performMaintForm.date, days);
+    };
+
+    const savePerformMaintenance = () => {
+      if (!performMaintForm.tool) return;
+      if (!performMaintForm.description.trim()) {
+        notify('Por favor describe brevemente cómo encontró o cómo funcionó el equipo', 'warning');
+        return;
+      }
+      if (!performMaintForm.date) {
+        notify('Selecciona la fecha en la que se realizó el mantenimiento', 'warning');
+        return;
+      }
+
+      const tool = tools.value.find(t => t.id === performMaintForm.tool.id);
+      if (!tool) return;
+
+      const period = tool.maintenancePeriod || 'trimestral';
+      const days = tool.maintenancePeriodDays || getMaintenancePeriodDays(period);
+      const nextDate = addDaysToDate(performMaintForm.date, days);
+
+      tool.lastMaintenanceDate = performMaintForm.date;
+      tool.nextMaintenanceDate = nextDate;
+      if (tool.status === 'mantenimiento') {
+        tool.status = 'disponible';
+      }
+
+      const maintCode = 'MNT-' + new Date().getFullYear() + '-' + String(maintenances.value.length + 1).padStart(3, '0');
+      const maintRecord = {
+        id: 'maint_' + Date.now(),
+        code: maintCode,
+        toolId: tool.id,
+        toolCode: tool.code,
+        toolName: tool.name,
+        type: 'preventivo',
+        status: 'completado',
+        priority: 'media',
+        scheduledDate: performMaintForm.date,
+        completedDate: performMaintForm.date,
+        provider: 'Mantenimiento Preventivo (' + getMaintenancePeriodLabel(tool.maintenancePeriod) + ')',
+        responsible: performMaintForm.responsible || currentUser.value?.name || company.manager,
+        cost: Number(performMaintForm.cost) || 0,
+        estimatedCost: 0,
+        description: `Mantenimiento Preventivo Periódico (${getMaintenancePeriodLabel(tool.maintenancePeriod)}). Diagnóstico / Estado: ${performMaintForm.description.trim()}`,
+        workDone: performMaintForm.description.trim(),
+        partsReplaced: '',
+        nextMaintenanceDate: nextDate,
+        createdAt: Date.now()
+      };
+
+      maintenances.value.unshift(maintRecord);
+      showPerformMaintenanceModal.value = false;
+      notify(`Mantenimiento registrado y guardado en Hoja de Vida de ${tool.code}. Próximo: ${nextDate}`, 'success');
+
+      if (supabaseConnected.value && supabaseClient.value) {
+        supabaseClient.value.from('maintenances').upsert([toSupabaseMaint(maintRecord)]).then(({ error }) => {
+          if (error) console.error('Supabase savePerformMaintenance error:', error);
+        });
+        supabaseClient.value.from('tools').upsert([toSupabaseTool(tool)]).then(({ error }) => {
+          if (error) console.error('Supabase tool update error:', error);
+        });
+      }
+    };
+
+    // 2. Modal Cuadro Sencillo: Realizar Prueba y Calentamiento Periódico
+    const showPerformHeatingModal = ref(false);
+    const performHeatingForm = reactive({
+      tool: null,
+      date: '',
+      description: '',
+      responsible: '',
+      result: 'satisfactorio', // 'satisfactorio' | 'con_novedad'
+      calculatedNextDate: ''
+    });
+
+    const openPerformHeating = (tool) => {
+      if (isConsulta.value) {
+        notify('Tu rol es de solo lectura. No puedes registrar pruebas.', 'warning');
+        return;
+      }
+      const today = new Date().toISOString().split('T')[0];
+      const period = tool.testingPeriod || '15_dias';
+      const days = tool.testingPeriodDays || getTestingPeriodDays(period);
+      const nextDate = addDaysToDate(today, days);
+
+      performHeatingForm.tool = tool;
+      performHeatingForm.date = today;
+      performHeatingForm.description = '';
+      performHeatingForm.responsible = currentUser.value?.name || company.manager;
+      performHeatingForm.result = 'satisfactorio';
+      performHeatingForm.calculatedNextDate = nextDate;
+      showPerformHeatingModal.value = true;
+    };
+
+    const updatePerformHeatingNextDate = () => {
+      if (!performHeatingForm.tool || !performHeatingForm.date) return;
+      const period = performHeatingForm.tool.testingPeriod || '15_dias';
+      const days = performHeatingForm.tool.testingPeriodDays || getTestingPeriodDays(period);
+      performHeatingForm.calculatedNextDate = addDaysToDate(performHeatingForm.date, days);
+    };
+
+    const savePerformHeating = () => {
+      if (!performHeatingForm.tool) return;
+      if (!performHeatingForm.description.trim()) {
+        notify('Por favor describe brevemente cómo encontró o cómo funcionó el equipo', 'warning');
+        return;
+      }
+      if (!performHeatingForm.date) {
+        notify('Selecciona la fecha de la prueba de calentamiento', 'warning');
+        return;
+      }
+
+      const tool = tools.value.find(t => t.id === performHeatingForm.tool.id);
+      if (!tool) return;
+
+      const period = tool.testingPeriod || '15_dias';
+      const days = tool.testingPeriodDays || getTestingPeriodDays(period);
+      const nextDate = addDaysToDate(performHeatingForm.date, days);
+
+      tool.lastTestingDate = performHeatingForm.date;
+      tool.nextTestingDate = nextDate;
+
+      const isSuccess = performHeatingForm.result === 'satisfactorio';
+      if (!isSuccess) {
+        tool.status = 'mantenimiento';
+      }
+
+      const heatCode = 'CAL-' + new Date().getFullYear() + '-' + String(maintenances.value.length + 1).padStart(3, '0');
+      const testRecord = {
+        id: 'heat_' + Date.now(),
+        code: heatCode,
+        toolId: tool.id,
+        toolCode: tool.code,
+        toolName: tool.name,
+        type: 'calentamiento',
+        status: 'completado',
+        priority: isSuccess ? 'media' : 'alta',
+        scheduledDate: performHeatingForm.date,
+        completedDate: performHeatingForm.date,
+        provider: 'Prueba y Calentamiento Periódico (' + getTestingPeriodLabel(tool.testingPeriod) + ')',
+        responsible: performHeatingForm.responsible || currentUser.value?.name || company.manager,
+        cost: 0,
+        estimatedCost: 0,
+        description: `Prueba y Calentamiento Periódico (${getTestingPeriodLabel(tool.testingPeriod)}) - ${isSuccess ? 'SATISFACTORIO' : 'CON NOVEDAD'}: ${performHeatingForm.description.trim()}`,
+        workDone: performHeatingForm.description.trim(),
+        partsReplaced: '',
+        testingResult: isSuccess ? 'satisfactorio' : 'con_novedad',
+        nextMaintenanceDate: nextDate,
+        createdAt: Date.now()
+      };
+
+      maintenances.value.unshift(testRecord);
+      showPerformHeatingModal.value = false;
+
+      if (isSuccess) {
+        notify(`Prueba de calentamiento registrada y guardada en Hoja de Vida de ${tool.code}. Próxima prueba: ${nextDate}`, 'success');
+      } else {
+        notify(`Prueba registrada con NOVEDAD para ${tool.code}. Equipo marcado en Mantenimiento.`, 'warning');
+      }
+
+      if (supabaseConnected.value && supabaseClient.value) {
+        supabaseClient.value.from('maintenances').upsert([toSupabaseMaint(testRecord)]).then(({ error }) => {
+          if (error) console.error('Supabase savePerformHeating error:', error);
+        });
+        supabaseClient.value.from('tools').upsert([toSupabaseTool(tool)]).then(({ error }) => {
+          if (error) console.error('Supabase tool update error:', error);
+        });
+      }
     };
 
     const saveTool = () => {
@@ -3618,6 +4014,7 @@ const app = createApp({
       processReturn,
       // Mantenimientos Periódicos, Alertas, Pruebas y Correctivos
       maintenanceTab,
+      maintSubTab,
       maintenanceSearch,
       maintenanceAlertFilter,
       toolsWithMaintenanceInfo,
@@ -3649,6 +4046,34 @@ const app = createApp({
       completeMaintForm,
       openCompleteMaintenanceModal,
       finalizeMaintenance,
+      // Nuevos Módulos Separados: Mantenimiento y Calentamiento Periódico
+      heatingSubTab,
+      heatingSearch,
+      getMaintenancePeriodDays,
+      getMaintenancePeriodLabel,
+      getTestingPeriodDays,
+      getTestingPeriodLabel,
+      setMaintenancePeriod,
+      setTestingPeriod,
+      allPreventiveTools,
+      pendingMaintenanceTools,
+      pendingMaintenanceAlertsCount,
+      allHeatingTools,
+      pendingHeatingTools,
+      pendingHeatingAlertsCount,
+      heatingHistory,
+      filteredHeatingTools,
+      // Modales Sencillos: Realizar Mantenimiento y Realizar Calentamiento
+      showPerformMaintenanceModal,
+      performMaintForm,
+      openPerformMaintenance,
+      updatePerformMaintNextDate,
+      savePerformMaintenance,
+      showPerformHeatingModal,
+      performHeatingForm,
+      openPerformHeating,
+      updatePerformHeatingNextDate,
+      savePerformHeating,
       // Técnicos
       showTechModal,
       isEditingTech,

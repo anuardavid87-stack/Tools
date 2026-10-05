@@ -266,16 +266,24 @@
               </button>
 
               <button 
-                @click="activeTab = 'maintenances'"
+                @click="activeTab = 'maintenances'; maintSubTab = 'pendientes'"
                 :class="activeTab === 'maintenances' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
                 class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
-                <span v-html="icons.maintenance"></span>
-                <span>Taller</span>
-                <span v-if="totalMaintenanceAlerts > 0" class="ml-0.5 text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/40 px-1.5 py-0.5 rounded-full font-bold animate-pulse" title="Alertas de taller pendientes">
-                  {{ totalMaintenanceAlerts }}
+                <span v-html="icons.wrench"></span>
+                <span>Mantenimientos</span>
+                <span v-if="pendingMaintenanceAlertsCount > 0" class="ml-0.5 text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/40 px-1.5 py-0.5 rounded-full font-bold animate-pulse" title="Mantenimientos pendientes">
+                  {{ pendingMaintenanceAlertsCount }}
                 </span>
-                <span v-else-if="pendingMaintenances.length > 0" class="ml-0.5 text-[10px] bg-blue-500/20 text-blue-400 px-1.5 py-0.5 rounded-full">
-                  {{ pendingMaintenances.length }}
+              </button>
+
+              <button 
+                @click="activeTab = 'calentamiento'; heatingSubTab = 'pendientes'"
+                :class="activeTab === 'calentamiento' ? 'bg-slate-800 text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                <span v-html="icons.flame"></span>
+                <span>Calentamiento</span>
+                <span v-if="pendingHeatingAlertsCount > 0" class="ml-0.5 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-1.5 py-0.5 rounded-full font-bold animate-pulse" title="Pruebas de calentamiento pendientes">
+                  {{ pendingHeatingAlertsCount }}
                 </span>
               </button>
 
@@ -385,10 +393,16 @@
             <button @click="activeTab = 'dashboard'" :class="activeTab === 'dashboard' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Dashboard</button>
             <button @click="activeTab = 'tools'" :class="activeTab === 'tools' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Equipos ({{ totalToolsCount }})</button>
             <button @click="activeTab = 'loans'" :class="activeTab === 'loans' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Préstamos ({{ activeLoans.length }})</button>
-            <button @click="activeTab = 'maintenances'" :class="activeTab === 'maintenances' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium flex items-center gap-1">
-              <span>Taller</span>
-              <span v-if="totalMaintenanceAlerts > 0" class="text-[10px] bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded-full font-bold">
-                {{ totalMaintenanceAlerts }}
+            <button @click="activeTab = 'maintenances'; maintSubTab = 'pendientes'" :class="activeTab === 'maintenances' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium flex items-center gap-1">
+              <span>Mantenimientos</span>
+              <span v-if="pendingMaintenanceAlertsCount > 0" class="text-[10px] bg-rose-500/20 text-rose-400 px-1.5 py-0.2 rounded-full font-bold">
+                {{ pendingMaintenanceAlertsCount }}
+              </span>
+            </button>
+            <button @click="activeTab = 'calentamiento'; heatingSubTab = 'pendientes'" :class="activeTab === 'calentamiento' ? 'bg-slate-800 text-amber-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium flex items-center gap-1">
+              <span>Calentamiento</span>
+              <span v-if="pendingHeatingAlertsCount > 0" class="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.2 rounded-full font-bold">
+                {{ pendingHeatingAlertsCount }}
               </span>
             </button>
             <button @click="activeTab = 'technicians'" :class="activeTab === 'technicians' ? 'bg-slate-800 text-emerald-400' : 'text-slate-400'" class="px-3 py-1 rounded-md text-xs whitespace-nowrap font-medium">Técnicos</button>
@@ -424,18 +438,34 @@
         </div>
       </div>
 
-      <!-- ALERTA GLOBAL DE MANTENIMIENTOS Y PRUEBAS VENCIDAS -->
-      <div v-if="totalMaintenanceAlerts > 0" class="bg-amber-950/75 border-b border-amber-800/60 px-4 py-2 text-amber-200 text-xs flex items-center justify-between">
+      <!-- ALERTA DEDICADA 1: MANTENIMIENTOS PENDIENTES O VENCIDOS -->
+      <div v-if="pendingMaintenanceAlertsCount > 0" class="bg-rose-950/75 border-b border-rose-800/60 px-4 py-2 text-rose-200 text-xs flex items-center justify-between">
         <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <span class="text-amber-400 font-bold flex items-center gap-1">
+            <span class="text-rose-400 font-bold flex items-center gap-1.5">
               <span v-html="icons.wrench"></span>
-              Alerta de Taller & Mantenimiento:
+              Alerta de Mantenimientos:
             </span>
-            <span>Hay <strong>{{ totalMaintenanceAlerts }}</strong> equipo(s) con mantenimientos periódicos, pruebas de arranque pendientes o correctivos en taller.</span>
+            <span>Hay <strong>{{ pendingMaintenanceAlertsCount }}</strong> equipo(s) con mantenimiento preventivo pendiente o averías registradas.</span>
           </div>
-          <button @click="activeTab = 'maintenances'; maintenanceTab = 'alertas'" class="text-amber-300 underline font-semibold hover:text-white ml-3">
-            Ver Centro de Alertas &rarr;
+          <button @click="activeTab = 'maintenances'; maintSubTab = 'pendientes'" class="text-rose-300 underline font-semibold hover:text-white ml-3">
+            Ver Mantenimientos Pendientes &rarr;
+          </button>
+        </div>
+      </div>
+
+      <!-- ALERTA DEDICADA 2: PRUEBAS DE CALENTAMIENTO PENDIENTES -->
+      <div v-if="pendingHeatingAlertsCount > 0" class="bg-amber-950/75 border-b border-amber-800/60 px-4 py-2 text-amber-200 text-xs flex items-center justify-between">
+        <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-amber-400 font-bold flex items-center gap-1.5">
+              <span v-html="icons.flame"></span>
+              Alerta de Pruebas de Calentamiento:
+            </span>
+            <span>Hay <strong>{{ pendingHeatingAlertsCount }}</strong> generador(es) o motor(es) con prueba de encendido y calentamiento periódico pendiente.</span>
+          </div>
+          <button @click="activeTab = 'calentamiento'; heatingSubTab = 'pendientes'" class="text-amber-300 underline font-semibold hover:text-white ml-3">
+            Ver Pruebas de Calentamiento &rarr;
           </button>
         </div>
       </div>
@@ -448,97 +478,109 @@
         <!-- ========================================== -->
         <section v-if="activeTab === 'dashboard'" class="space-y-6 animate-fade-in">
           
-          <!-- Tarjetas de Métricas (KPIs) -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Tarjetas de Métricas (KPIs) de 5 Columnas -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
             
             <!-- Total Equipos -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-colors">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Inventario Total</span>
-                <div class="w-9 h-9 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Inventario Total</span>
+                <div class="w-8 h-8 rounded-xl bg-slate-800 text-slate-300 flex items-center justify-center">
                   <span v-html="icons.tool"></span>
                 </div>
               </div>
-              <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-bold text-white tracking-tight">{{ totalToolsCount }}</span>
-                <span class="text-xs text-slate-400">equipos registrados</span>
+              <div class="mt-2.5 flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-white tracking-tight">{{ totalToolsCount }}</span>
+                <span class="text-[11px] text-slate-400">equipos</span>
               </div>
-              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <span class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> {{ availableToolsCount }} Disponibles
-                </span>
-                <span class="flex items-center gap-1.5">
-                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> {{ loanedToolsCount }} En Uso
-                </span>
+              <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                <span>{{ availableToolsCount }} disp.</span>
+                <span>{{ loanedToolsCount }} en uso</span>
               </div>
             </div>
 
             <!-- Préstamos Activos -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-colors">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Préstamos en Curso</span>
-                <div class="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Préstamos</span>
+                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
                   <span v-html="icons.loans"></span>
                 </div>
               </div>
-              <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-bold text-amber-400 tracking-tight">{{ activeLoans.length }}</span>
-                <span class="text-xs text-slate-400">vales abiertos</span>
+              <div class="mt-2.5 flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-amber-400 tracking-tight">{{ activeLoans.length }}</span>
+                <span class="text-[11px] text-slate-400">vales activos</span>
               </div>
-              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
-                <span v-if="overdueLoans.length > 0" class="text-rose-400 font-medium flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> {{ overdueLoans.length }} Vencidos
+              <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span v-if="overdueLoans.length > 0" class="text-rose-400 font-bold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span> {{ overdueLoans.length }} Vencidos
                 </span>
-                <span v-else class="text-emerald-400 font-medium flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Todos al día
-                </span>
-                <button @click="activeTab = 'loans'" class="text-slate-400 hover:text-slate-200">Ver lista &rarr;</button>
+                <span v-else class="text-emerald-400 font-medium">Al día</span>
+                <button @click="activeTab = 'loans'" class="text-slate-400 hover:text-slate-200">Ver &rarr;</button>
               </div>
             </div>
 
-            <!-- Mantenimientos y Alertas de Taller -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+            <!-- Mantenimientos (Alerta 1) -->
+            <div @click="activeTab = 'maintenances'; maintSubTab = 'pendientes'" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-rose-500/50 cursor-pointer transition-all">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Taller & Alertas</span>
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center" :class="totalMaintenanceAlerts > 0 ? 'bg-rose-500/10 text-rose-400' : 'bg-blue-500/10 text-blue-400'">
+                <span class="text-[11px] font-semibold text-rose-400 uppercase tracking-wider">Mantenimientos</span>
+                <div class="w-8 h-8 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center">
                   <span v-html="icons.wrench"></span>
                 </div>
               </div>
-              <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-bold tracking-tight" :class="totalMaintenanceAlerts > 0 ? 'text-rose-400' : 'text-blue-400'">{{ totalMaintenanceAlerts }}</span>
-                <span class="text-xs text-slate-400">alertas de atención</span>
+              <div class="mt-2.5 flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-rose-400 tracking-tight">{{ pendingMaintenanceAlertsCount }}</span>
+                <span class="text-[11px] text-slate-400">pendientes</span>
               </div>
-              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <span v-if="overdueMaintenances.length > 0 || overdueTests.length > 0" class="text-rose-400 font-semibold flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> {{ overdueMaintenances.length + overdueTests.length }} Vencidos
+              <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span v-if="overdueMaintenances.length > 0" class="text-rose-400 font-semibold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span> {{ overdueMaintenances.length }} Vencidos
                 </span>
-                <span v-else-if="activeCorrectives.length > 0" class="text-amber-400 font-semibold flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-amber-500"></span> {{ activeCorrectives.length }} Avería(s)
+                <span v-else class="text-emerald-400 font-medium">Al día</span>
+                <span class="text-rose-400 font-medium">Revisar &rarr;</span>
+              </div>
+            </div>
+
+            <!-- Pruebas de Calentamiento (Alerta 2) -->
+            <div @click="activeTab = 'calentamiento'; heatingSubTab = 'pendientes'" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-amber-500/50 cursor-pointer transition-all">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Calentamiento</span>
+                <div class="w-8 h-8 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <span v-html="icons.flame"></span>
+                </div>
+              </div>
+              <div class="mt-2.5 flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-amber-400 tracking-tight">{{ pendingHeatingAlertsCount }}</span>
+                <span class="text-[11px] text-slate-400">pendientes</span>
+              </div>
+              <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px]">
+                <span v-if="overdueTests.length > 0" class="text-amber-400 font-semibold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> {{ overdueTests.length }} Vencidas
                 </span>
-                <span v-else class="text-emerald-400 font-medium flex items-center gap-1">
-                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Al día
-                </span>
-                <button @click="activeTab = 'maintenances'; maintenanceTab = 'alertas'" class="text-slate-400 hover:text-slate-200">Ver taller &rarr;</button>
+                <span v-else class="text-emerald-400 font-medium">Al día</span>
+                <span class="text-amber-400 font-medium">Revisar &rarr;</span>
               </div>
             </div>
 
             <!-- Técnicos Activos -->
-            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm hover:border-slate-700 transition-colors">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm hover:border-slate-700 transition-colors">
               <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Personal Técnico</span>
-                <div class="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Técnicos</span>
+                <div class="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
                   <span v-html="icons.technicians"></span>
                 </div>
               </div>
-              <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-3xl font-bold text-white tracking-tight">{{ technicians.length }}</span>
-                <span class="text-xs text-slate-400">técnicos registrados</span>
+              <div class="mt-2.5 flex items-baseline gap-1.5">
+                <span class="text-2xl font-bold text-white tracking-tight">{{ technicians.length }}</span>
+                <span class="text-[11px] text-slate-400">registrados</span>
               </div>
-              <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                <span>Personal habilitado</span>
-                <button @click="activeTab = 'technicians'" class="text-slate-400 hover:text-slate-200">Gestionar &rarr;</button>
+              <div class="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                <span>Personal</span>
+                <button @click="activeTab = 'technicians'" class="text-slate-400 hover:text-slate-200">Ver &rarr;</button>
               </div>
             </div>
+
+          </div>
 
           </div>
 
@@ -1101,21 +1143,24 @@
         </section>
 
         <!-- ========================================== -->
-        <!-- 4. VISTA: MÓDULO INTEGRAL DE MANTENIMIENTO -->
+        <!-- 4. VISTA: MÓDULO DE MANTENIMIENTOS         -->
         <!-- ========================================== -->
         <section v-if="activeTab === 'maintenances'" class="space-y-6 animate-fade-in">
           
-          <!-- Encabezado y Acciones Principales del Módulo -->
+          <!-- Encabezado y Acciones Principales del Módulo de Mantenimientos -->
           <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div>
                 <div class="flex items-center gap-2">
-                  <h2 class="text-xl font-bold text-white tracking-tight">Módulo de Mantenimiento & Maquinaria Periódica</h2>
-                  <span v-if="totalMaintenanceAlerts > 0" class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
-                    {{ totalMaintenanceAlerts }} Alertas
+                  <span class="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <span v-html="icons.wrench"></span>
+                  </span>
+                  <h2 class="text-xl font-bold text-white tracking-tight">Módulo de Mantenimientos</h2>
+                  <span v-if="pendingMaintenanceAlertsCount > 0" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse">
+                    {{ pendingMaintenanceAlertsCount }} Pendientes
                   </span>
                 </div>
-                <p class="text-xs text-slate-400 mt-0.5">Control preventivo para motores, plantas y maquinaria periódica, pruebas de arranque y reporte de averías correctivas con costos estimados.</p>
+                <p class="text-xs text-slate-400 mt-1">Control de mantenimientos preventivos periódicos (mensual, trimestral, semestral o anual), averías correctivas y registro en la hoja de vida de cada equipo.</p>
               </div>
               
               <!-- Botones de Acción Rápida -->
@@ -1127,15 +1172,9 @@
                 </button>
 
                 <!-- Programar Preventivo -->
-                <button @click="openNewMaintenanceModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-900/30 transition-all cursor-pointer">
+                <button @click="openNewMaintenanceModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/30 transition-all cursor-pointer">
                   <span v-html="icons.wrench"></span>
-                  <span>Programar Preventivo</span>
-                </button>
-
-                <!-- Registrar Prueba Operativa -->
-                <button @click="openTestModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-900/30 transition-all cursor-pointer">
-                  <span v-html="icons.bolt"></span>
-                  <span>⚡ Probar Maquinaria</span>
+                  <span>Programar Servicio</span>
                 </button>
 
                 <!-- Exportar Excel -->
@@ -1146,22 +1185,32 @@
               </div>
             </div>
 
-            <!-- Pestañas del Módulo y Buscador -->
+            <!-- Pestañas del Módulo de Mantenimientos y Buscador -->
             <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
               <div class="flex overflow-x-auto items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 no-scrollbar">
-                <!-- Subtab: Alertas -->
-                <button @click="maintenanceTab = 'alertas'" 
-                  :class="maintenanceTab === 'alertas' ? 'bg-slate-800 text-rose-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                <!-- Subtab: Pendientes -->
+                <button @click="maintSubTab = 'pendientes'" 
+                  :class="maintSubTab === 'pendientes' ? 'bg-slate-800 text-rose-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
                   class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
-                  <span>🚨 Alertas & Vencimientos</span>
-                  <span v-if="totalMaintenanceAlerts > 0" class="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                    {{ totalMaintenanceAlerts }}
+                  <span>🚨 Pendientes</span>
+                  <span v-if="pendingMaintenanceAlertsCount > 0" class="bg-rose-500/20 text-rose-400 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                    {{ pendingMaintenanceAlertsCount }}
+                  </span>
+                </button>
+
+                <!-- Subtab: Catálogo Preventivo -->
+                <button @click="maintSubTab = 'catalogo'" 
+                  :class="maintSubTab === 'catalogo' ? 'bg-slate-800 text-emerald-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                  class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
+                  <span>📋 Catálogo Preventivo</span>
+                  <span class="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">
+                    {{ allPreventiveTools.length }}
                   </span>
                 </button>
 
                 <!-- Subtab: Correctivos -->
-                <button @click="maintenanceTab = 'correctivos'" 
-                  :class="maintenanceTab === 'correctivos' ? 'bg-slate-800 text-amber-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                <button @click="maintSubTab = 'correctivos'" 
+                  :class="maintSubTab === 'correctivos' ? 'bg-slate-800 text-amber-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
                   class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
                   <span>🛠️ Averías & Correctivos</span>
                   <span v-if="activeCorrectives.length > 0" class="bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
@@ -1169,21 +1218,11 @@
                   </span>
                 </button>
 
-                <!-- Subtab: Periódicos y Pruebas -->
-                <button @click="maintenanceTab = 'periodicos'" 
-                  :class="maintenanceTab === 'periodicos' ? 'bg-slate-800 text-emerald-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
-                  class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
-                  <span>📅 Equipos Periódicos</span>
-                  <span class="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">
-                    {{ filteredPeriodicTools.length }}
-                  </span>
-                </button>
-
                 <!-- Subtab: Historial Realizados -->
-                <button @click="maintenanceTab = 'historial'" 
-                  :class="maintenanceTab === 'historial' ? 'bg-slate-800 text-blue-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                <button @click="maintSubTab = 'historial'" 
+                  :class="maintSubTab === 'historial' ? 'bg-slate-800 text-blue-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
                   class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
-                  <span>📜 Historial Completo</span>
+                  <span>📜 Historial</span>
                   <span class="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">
                     {{ completedMaintenances.length }}
                   </span>
@@ -1195,7 +1234,7 @@
                 <input 
                   v-model="maintenanceSearch" 
                   type="text" 
-                  placeholder="Buscar código, equipo, falla, taller..." 
+                  placeholder="Buscar equipo, código, falla..." 
                   class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors">
                 <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.search"></span>
               </div>
@@ -1203,204 +1242,183 @@
           </div>
 
           <!-- ============================================================== -->
-          <!-- PESTAÑA 1: ALERTAS Y VENCIMIENTOS AUTOMÁTICOS                 -->
+          <!-- PESTAÑA 1: MANTENIMIENTOS PENDIENTES CON BOTÓN "REALIZAR"     -->
           <!-- ============================================================== -->
-          <div v-if="maintenanceTab === 'alertas'" class="space-y-4">
+          <div v-if="maintSubTab === 'pendientes'" class="space-y-4">
             
-            <!-- Franja de 4 KPIs Resumen de Alertas -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <!-- Mantenimientos Vencidos -->
-              <div @click="maintenanceAlertFilter = maintenanceAlertFilter === 'maint_overdue' ? 'all' : 'maint_overdue'" 
-                :class="maintenanceAlertFilter === 'maint_overdue' ? 'ring-2 ring-rose-500 bg-rose-950/40' : 'bg-slate-900'"
-                class="border border-slate-800 hover:border-rose-500/50 p-4 rounded-xl cursor-pointer transition-all">
-                <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-semibold text-rose-400 uppercase tracking-wider">Mantenimientos Vencidos</span>
-                  <span class="text-rose-400 font-bold" v-html="icons.alert"></span>
-                </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                  <span class="text-2xl font-black text-rose-400 font-mono">{{ overdueMaintenances.length }}</span>
-                  <span class="text-[11px] text-slate-400">equipos críticos</span>
-                </div>
-                <p class="text-[10px] text-slate-500 mt-1">Superaron su fecha límite de mantenimiento</p>
+            <div class="bg-rose-950/20 border border-rose-800/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div class="flex items-center gap-2 text-rose-200">
+                <span v-html="icons.wrench" class="text-rose-400"></span>
+                <span>Equipos con mantenimiento preventivo vencido o próximo a vencer. Pulsa <strong>"Realizar"</strong> para registrar la fecha y el estado en su hoja de vida.</span>
               </div>
-
-              <!-- Pruebas Operativas Vencidas -->
-              <div @click="maintenanceAlertFilter = maintenanceAlertFilter === 'test_overdue' ? 'all' : 'test_overdue'" 
-                :class="maintenanceAlertFilter === 'test_overdue' ? 'ring-2 ring-amber-500 bg-amber-950/40' : 'bg-slate-900'"
-                class="border border-slate-800 hover:border-amber-500/50 p-4 rounded-xl cursor-pointer transition-all">
-                <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-semibold text-amber-400 uppercase tracking-wider">Pruebas Vencidas</span>
-                  <span class="text-amber-400 font-bold" v-html="icons.bolt"></span>
-                </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                  <span class="text-2xl font-black text-amber-400 font-mono">{{ overdueTests.length }}</span>
-                  <span class="text-[11px] text-slate-400">arranque pendiente</span>
-                </div>
-                <p class="text-[10px] text-slate-500 mt-1">Generadores y motores sin probar</p>
-              </div>
-
-              <!-- Averías y Correctivos Activos -->
-              <div @click="maintenanceAlertFilter = maintenanceAlertFilter === 'corrective' ? 'all' : 'corrective'" 
-                :class="maintenanceAlertFilter === 'corrective' ? 'ring-2 ring-orange-500 bg-orange-950/40' : 'bg-slate-900'"
-                class="border border-slate-800 hover:border-orange-500/50 p-4 rounded-xl cursor-pointer transition-all">
-                <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-semibold text-orange-400 uppercase tracking-wider">Averías en Reparación</span>
-                  <span class="text-orange-400 font-bold" v-html="icons.wrench"></span>
-                </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                  <span class="text-2xl font-black text-orange-400 font-mono">{{ activeCorrectives.length }}</span>
-                  <span class="text-[11px] text-slate-400">órdenes correctivas</span>
-                </div>
-                <p class="text-[10px] text-slate-500 mt-1">Equipos con fallas reportadas</p>
-              </div>
-
-              <!-- Próximos a Vencer -->
-              <div @click="maintenanceAlertFilter = maintenanceAlertFilter === 'maint_upcoming' ? 'all' : 'maint_upcoming'" 
-                :class="maintenanceAlertFilter === 'maint_upcoming' ? 'ring-2 ring-blue-500 bg-blue-950/40' : 'bg-slate-900'"
-                class="border border-slate-800 hover:border-blue-500/50 p-4 rounded-xl cursor-pointer transition-all">
-                <div class="flex items-center justify-between">
-                  <span class="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">Próximos a Vencer</span>
-                  <span class="text-blue-400 font-bold" v-html="icons.clock"></span>
-                </div>
-                <div class="mt-2 flex items-baseline gap-2">
-                  <span class="text-2xl font-black text-blue-400 font-mono">{{ upcomingMaintenances.length + upcomingTests.length }}</span>
-                  <span class="text-[11px] text-slate-400">próximos 15 días</span>
-                </div>
-                <p class="text-[10px] text-slate-500 mt-1">Servicios y pruebas a programar</p>
-              </div>
+              <span class="bg-rose-500/20 text-rose-400 font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+                {{ pendingMaintenanceTools.length }} equipo(s) pendiente(s)
+              </span>
             </div>
 
-            <!-- Botones de Filtro Rápido -->
-            <div class="flex flex-wrap items-center gap-1.5 text-xs">
-              <span class="text-slate-400 text-[11px] mr-1">Filtrar alertas:</span>
-              <button @click="maintenanceAlertFilter = 'all'" :class="maintenanceAlertFilter === 'all' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:bg-slate-900'" class="px-2.5 py-1 rounded-lg">Todas ({{ activeAlertsList.length }})</button>
-              <button @click="maintenanceAlertFilter = 'maint_overdue'" :class="maintenanceAlertFilter === 'maint_overdue' ? 'bg-rose-950/80 text-rose-300 font-bold border border-rose-800/60' : 'text-slate-400 hover:bg-slate-900'" class="px-2.5 py-1 rounded-lg">Mantenimientos Vencidos ({{ overdueMaintenances.length }})</button>
-              <button @click="maintenanceAlertFilter = 'test_overdue'" :class="maintenanceAlertFilter === 'test_overdue' ? 'bg-amber-950/80 text-amber-300 font-bold border border-amber-800/60' : 'text-slate-400 hover:bg-slate-900'" class="px-2.5 py-1 rounded-lg">Pruebas Vencidas ({{ overdueTests.length }})</button>
-              <button @click="maintenanceAlertFilter = 'corrective'" :class="maintenanceAlertFilter === 'corrective' ? 'bg-orange-950/80 text-orange-300 font-bold border border-orange-800/60' : 'text-slate-400 hover:bg-slate-900'" class="px-2.5 py-1 rounded-lg">Averías Activas ({{ activeCorrectives.length }})</button>
-              <button @click="maintenanceAlertFilter = 'maint_upcoming'" :class="maintenanceAlertFilter === 'maint_upcoming' ? 'bg-blue-950/80 text-blue-300 font-bold border border-blue-800/60' : 'text-slate-400 hover:bg-slate-900'" class="px-2.5 py-1 rounded-lg">Próximos a Vencer ({{ upcomingMaintenances.length + upcomingTests.length }})</button>
-            </div>
-
-            <!-- Listado de Tarjetas de Alerta Interactiva -->
-            <div v-if="activeAlertsList.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
+            <!-- Si no hay pendientes -->
+            <div v-if="pendingMaintenanceTools.length === 0 && activeCorrectives.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
               <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
                 <span v-html="icons.check"></span>
               </div>
-              <h3 class="text-base font-bold text-white">¡No hay alertas pendientes!</h3>
-              <p class="text-xs text-slate-400 max-w-md mx-auto">Toda la maquinaria y herramientas tienen sus mantenimientos periódicos y pruebas operativas al día.</p>
+              <h3 class="text-base font-bold text-white">¡No hay mantenimientos pendientes!</h3>
+              <p class="text-xs text-slate-400 max-w-md mx-auto">Todos los equipos y maquinaria tienen sus mantenimientos preventivos al día.</p>
             </div>
 
+            <!-- Listado de Equipos Pendientes con Botón Realizar -->
             <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div v-for="alert in activeAlertsList" :key="alert.id" 
-                :class="alert.severity === 'danger' ? 'border-rose-800/60 bg-gradient-to-br from-rose-950/20 via-slate-900 to-slate-900' : 'border-amber-800/50 bg-gradient-to-br from-amber-950/15 via-slate-900 to-slate-900'"
+              <div v-for="t in pendingMaintenanceTools" :key="t.id" 
+                :class="t.maintStatus === 'overdue' ? 'border-rose-800/60 bg-gradient-to-br from-rose-950/25 via-slate-900 to-slate-900' : 'border-amber-800/50 bg-gradient-to-br from-amber-950/15 via-slate-900 to-slate-900'"
                 class="border rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700 transition-all">
                 
                 <div>
                   <div class="flex items-start justify-between gap-2">
-                    <span :class="alert.severity === 'danger' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'" 
+                    <span :class="t.maintStatus === 'overdue' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'" 
                       class="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                      <span v-if="alert.severity === 'danger'" class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                      <span v-if="t.maintStatus === 'overdue'" class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
                       <span v-else class="w-2 h-2 rounded-full bg-amber-400"></span>
-                      <span>{{ alert.badgeText }}</span>
+                      <span>{{ t.maintStatus === 'overdue' ? 'Mantenimiento Vencido' : 'Vence Pronto' }}</span>
                     </span>
 
-                    <span class="text-[11px] font-mono font-bold" :class="alert.severity === 'danger' ? 'text-rose-400' : 'text-amber-400'">
-                      {{ alert.daysText }}
+                    <span class="text-[11px] font-mono font-bold" :class="t.maintStatus === 'overdue' ? 'text-rose-400' : 'text-amber-400'">
+                      {{ t.daysToMaint < 0 ? `Vencido hace ${Math.abs(t.daysToMaint)} día(s)` : (t.daysToMaint === 0 ? 'Vence HOY' : `Vence en ${t.daysToMaint} día(s)`) }}
                     </span>
                   </div>
 
                   <div class="mt-3">
-                    <h3 class="text-base font-bold text-white tracking-tight">{{ alert.title }}</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">{{ alert.category }} • {{ alert.periodText }}</p>
-                  </div>
-
-                  <!-- Detalles según tipo de alerta -->
-                  <div class="mt-3 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
-                    <div class="flex justify-between" v-if="alert.dueDate">
-                      <span class="text-slate-500">Fecha de Vencimiento / Programada:</span>
-                      <span class="font-mono text-slate-200 font-semibold">{{ alert.dueDate }}</span>
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-xs font-bold text-emerald-400 bg-emerald-950/40 px-2 py-0.5 rounded border border-emerald-800/40">{{ t.code }}</span>
+                      <span class="text-xs text-slate-400">{{ t.category }}</span>
                     </div>
+                    <h3 class="text-base font-bold text-white tracking-tight mt-1">{{ t.name }}</h3>
+                    <p class="text-xs text-slate-400">{{ t.brand }} {{ t.model }} • Ubicación: {{ t.location || 'Almacén Central' }}</p>
+                  </div>
 
-                    <!-- Si es avería correctiva -->
-                    <template v-if="alert.maintenance">
-                      <div class="flex justify-between">
-                        <span class="text-slate-500">Falla Reportada:</span>
-                        <span class="text-rose-300 font-medium text-right max-w-xs truncate">{{ alert.maintenance.failureDescription || alert.maintenance.description }}</span>
-                      </div>
-                      <div class="flex justify-between" v-if="alert.maintenance.workToDo">
-                        <span class="text-slate-500">Trabajo a Realizar:</span>
-                        <span class="text-slate-300 text-right max-w-xs truncate">{{ alert.maintenance.workToDo }}</span>
-                      </div>
-                      <div class="flex justify-between" v-if="alert.maintenance.estimatedCost">
-                        <span class="text-slate-500">Presupuesto Estimado:</span>
-                        <span class="font-bold text-emerald-400 font-mono">${{ Number(alert.maintenance.estimatedCost).toLocaleString() }}</span>
-                      </div>
-                    </template>
-
-                    <!-- Si es herramienta periódica -->
-                    <template v-else-if="alert.tool">
-                      <div class="flex justify-between" v-if="alert.tool.lastMaintenanceDate">
-                        <span class="text-slate-500">Último Mantenimiento:</span>
-                        <span class="font-mono text-slate-300">{{ alert.tool.lastMaintenanceDate }}</span>
-                      </div>
-                      <div class="flex justify-between" v-if="alert.tool.lastTestingDate">
-                        <span class="text-slate-500">Última Prueba Realizada:</span>
-                        <span class="font-mono text-slate-300">{{ alert.tool.lastTestingDate }}</span>
-                      </div>
-                      <div class="flex justify-between">
-                        <span class="text-slate-500">Ubicación Física:</span>
-                        <span class="text-slate-300">{{ alert.tool.location || 'Almacén' }}</span>
-                      </div>
-                    </template>
+                  <!-- Detalle de Periodicidad y Fechas -->
+                  <div class="mt-3.5 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Periodicidad Requerida:</span>
+                      <span class="font-bold text-emerald-400">{{ getMaintenancePeriodLabel(t.maintenancePeriod) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Último Mantenimiento:</span>
+                      <span class="font-mono text-slate-300">{{ t.lastMaintenanceDate || 'Sin registro previo' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Fecha Límite / Vencimiento:</span>
+                      <span class="font-mono font-bold text-rose-300">{{ t.effectiveNextMaint }}</span>
+                    </div>
                   </div>
                 </div>
 
-                <!-- Botones de Acción de 1-Clic -->
+                <!-- Botón de Acción Prominente: Realizar -->
                 <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between" v-if="!isConsulta">
-                  <div class="text-[11px] text-slate-500">
-                    <span v-if="alert.tool">Estado: {{ getStatusLabel(alert.tool.status) }}</span>
-                  </div>
+                  <span class="text-[11px] text-slate-400">Estado: {{ getStatusLabel(t.status) }}</span>
 
-                  <div class="flex items-center gap-2">
-                    <!-- Botón si es Mantenimiento Vencido o Próximo -->
-                    <button v-if="alert.actionType === 'schedule_maint'" 
-                      @click="openNewMaintenanceModal(alert.tool)" 
-                      class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all">
-                      <span v-html="icons.wrench"></span>
-                      <span>{{ alert.actionText }}</span>
-                    </button>
-
-                    <!-- Botón si es Prueba Operativa Vencida o Próxima -->
-                    <button v-if="alert.actionType === 'run_test'" 
-                      @click="openTestModal(alert.tool)" 
-                      class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all">
-                      <span v-html="icons.bolt"></span>
-                      <span>{{ alert.actionText }}</span>
-                    </button>
-
-                    <!-- Botón si es Avería Correctiva Activa -->
-                    <button v-if="alert.actionType === 'complete_maint'" 
-                      @click="openCompleteMaintenanceModal(alert.maintenance)" 
-                      class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-sm transition-all">
-                      <span v-html="icons.check"></span>
-                      <span>{{ alert.actionText }}</span>
-                    </button>
-                  </div>
+                  <button @click="openPerformMaintenance(t)" 
+                    class="bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-emerald-950/50 transition-all cursor-pointer">
+                    <span v-html="icons.wrench"></span>
+                    <span>Realizar Mantenimiento</span>
+                  </button>
                 </div>
 
+              </div>
+            </div>
+
+            <!-- Averías Activas en Esta Vista -->
+            <div v-if="activeCorrectives.length > 0" class="pt-4 space-y-3">
+              <h4 class="text-xs font-bold uppercase tracking-wider text-orange-400 flex items-center gap-1.5">
+                <span v-html="icons.alert"></span> Averías Correctivas en Taller ({{ activeCorrectives.length }})
+              </h4>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div v-for="m in activeCorrectives" :key="m.id" class="bg-slate-900 border border-orange-800/40 rounded-xl p-4 flex items-center justify-between gap-3">
+                  <div>
+                    <span class="font-mono text-xs font-bold text-orange-400">{{ m.code }}</span>
+                    <div class="font-bold text-white text-xs">{{ m.toolCode }} - {{ m.toolName }}</div>
+                    <div class="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{{ m.failureDescription || m.description }}</div>
+                  </div>
+                  <button v-if="!isConsulta" @click="openCompleteMaintenanceModal(m)" class="bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg whitespace-nowrap">
+                    Finalizar
+                  </button>
+                </div>
               </div>
             </div>
 
           </div>
 
           <!-- ============================================================== -->
-          <!-- PESTAÑA 2: MANTENIMIENTOS CORRECTIVOS (AVERÍAS Y PRESUPUESTOS) -->
+          <!-- PESTAÑA 2: CATÁLOGO DE EQUIPOS CON MANTENIMIENTO PREVENTIVO    -->
           <!-- ============================================================== -->
-          <div v-if="maintenanceTab === 'correctivos'" class="space-y-4">
-            
+          <div v-if="maintSubTab === 'catalogo'" class="space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div v-if="allPreventiveTools.length === 0" class="p-12 text-center text-slate-500 text-xs">
+                No hay equipos configurados con mantenimiento preventivo periódico.
+              </div>
+              <div v-else class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                  <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th class="py-3 px-4">Equipo / Maquinaria</th>
+                      <th class="py-3 px-4">Periodicidad</th>
+                      <th class="py-3 px-4">Último Mantenimiento</th>
+                      <th class="py-3 px-4">Próximo Vencimiento</th>
+                      <th class="py-3 px-4">Estado</th>
+                      <th class="py-3 px-4 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60">
+                    <tr v-for="t in allPreventiveTools" :key="t.id" class="hover:bg-slate-800/40 transition-colors">
+                      <td class="py-3 px-4">
+                        <div class="flex items-center gap-2">
+                          <span class="font-mono font-bold text-emerald-400">{{ t.code }}</span>
+                          <span class="text-white font-semibold">{{ t.name }}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">{{ t.brand }} {{ t.model }} • Ubicación: {{ t.location || 'Almacén' }}</div>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span class="bg-emerald-950/60 text-emerald-300 border border-emerald-800/50 px-2 py-0.5 rounded-full font-semibold text-[11px]">
+                          {{ getMaintenancePeriodLabel(t.maintenancePeriod) }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 font-mono text-slate-300">
+                        {{ t.lastMaintenanceDate || 'Sin registro' }}
+                      </td>
+                      <td class="py-3 px-4">
+                        <div class="font-mono font-bold" :class="t.maintStatus === 'overdue' ? 'text-rose-400' : 'text-slate-200'">
+                          {{ t.effectiveNextMaint || 'N/A' }}
+                        </div>
+                        <span v-if="t.maintStatus === 'overdue'" class="text-[10px] text-rose-400 font-semibold block">
+                          Vencido hace {{ Math.abs(t.daysToMaint) }}d
+                        </span>
+                        <span v-else-if="t.daysToMaint !== null" class="text-[10px] text-slate-400 block">
+                          En {{ t.daysToMaint }} día(s)
+                        </span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span :class="getStatusBadge(t.status)" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block">
+                          {{ getStatusLabel(t.status) }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 text-right" v-if="!isConsulta">
+                        <button @click="openPerformMaintenance(t)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3 py-1 rounded-lg shadow-sm transition-colors">
+                          Realizar
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================== -->
+          <!-- PESTAÑA 3: CORRECTIVOS & AVERÍAS                              -->
+          <!-- ============================================================== -->
+          <div v-if="maintSubTab === 'correctivos'" class="space-y-4">
             <div class="bg-amber-950/20 border border-amber-800/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div class="flex items-center gap-2 text-amber-200">
                 <span v-html="icons.alert" class="text-amber-400"></span>
-                <span>Control de averías reportadas por técnicos o almacén, con descripción de la falla, trabajos a cotizar y costo aproximado presupuestado.</span>
+                <span>Averías reportadas con descripción de la falla, especificación para cotización técnica y costo aproximado presupuestado.</span>
               </div>
               <button v-if="!isConsulta" @click="openCorrectiveModal()" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm transition-all flex items-center gap-1.5">
                 <span>+</span> Reportar Avería
@@ -1413,7 +1431,6 @@
 
             <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div v-for="maint in filteredCorrectiveMaintenances" :key="maint.id" class="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700 transition-all">
-                
                 <div>
                   <div class="flex items-start justify-between gap-2">
                     <div>
@@ -1438,21 +1455,17 @@
                     <h3 class="text-base font-bold text-white tracking-tight">{{ maint.toolName }}</h3>
                   </div>
 
-                  <!-- Cuadro Descriptivo de Falla, Trabajo y Costo Estimado -->
                   <div class="mt-3 space-y-2 text-xs">
-                    <!-- Falla Reportada -->
                     <div class="bg-rose-950/20 border border-rose-800/40 p-3 rounded-xl space-y-1">
                       <span class="text-rose-400 font-bold text-[11px] block">🚨 Falla Detectada / Daño Presentado:</span>
                       <p class="text-slate-200">{{ maint.failureDescription || maint.description }}</p>
                     </div>
 
-                    <!-- Trabajo a Realizar -->
                     <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
                       <span class="text-slate-400 font-bold text-[11px] block">🔧 Trabajo a Realizar / Especificación Técnica:</span>
                       <p class="text-slate-200">{{ maint.workToDo || 'Pendiente de diagnóstico técnico en taller' }}</p>
                     </div>
 
-                    <!-- Presupuesto Estimado y Taller -->
                     <div class="grid grid-cols-2 gap-2">
                       <div class="bg-slate-950 p-3 rounded-xl border border-slate-800">
                         <span class="text-slate-400 text-[11px] block">Presupuesto Estimado:</span>
@@ -1473,133 +1486,16 @@
                     <span>&check;</span> Finalizar Reparación & Liberar
                   </button>
                 </div>
-
               </div>
             </div>
-
           </div>
 
           <!-- ============================================================== -->
-          <!-- PESTAÑA 3: PROGRAMA DE EQUIPOS PERIÓDICOS & PRUEBAS           -->
+          <!-- PESTAÑA 4: HISTORIAL DE SERVICIOS Y MANTENIMIENTOS            -->
           <!-- ============================================================== -->
-          <div v-if="maintenanceTab === 'periodicos'" class="space-y-4">
-            
-            <div class="bg-blue-950/20 border border-blue-800/40 rounded-2xl p-4 text-xs text-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div class="flex items-center gap-2">
-                <span v-html="icons.calendar" class="text-blue-400"></span>
-                <span>Catálogo de maquinaria sujeta a mantenimiento cíclico (plantas, motores, compresores, bombas) con monitoreo de periodicidad y pruebas de arranque.</span>
-              </div>
-              <button v-if="!isConsulta" @click="openNewToolModal()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded-xl whitespace-nowrap shadow-sm transition-all">
-                + Configurar Maquinaria
-              </button>
-            </div>
-
-            <div v-if="filteredPeriodicTools.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-xs">
-              No hay herramientas configuradas con mantenimiento periódico o pruebas operativas cíclicas.
-            </div>
-
-            <div v-else class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-              <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs text-slate-300">
-                  <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
-                    <tr>
-                      <th class="py-3 px-4">Equipo / Maquinaria</th>
-                      <th class="py-3 px-4">Mantenimiento Periódico</th>
-                      <th class="py-3 px-4">Pruebas Operativas</th>
-                      <th class="py-3 px-4">Estado</th>
-                      <th class="py-3 px-4 text-right">Acciones Rápidas</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-slate-800/60">
-                    <tr v-for="t in filteredPeriodicTools" :key="t.id" class="hover:bg-slate-800/40 transition-colors">
-                      <!-- Equipo -->
-                      <td class="py-3 px-4">
-                        <div class="flex items-center gap-2">
-                          <span class="font-mono font-bold text-emerald-400">{{ t.code }}</span>
-                          <span class="text-white font-semibold">{{ t.name }}</span>
-                        </div>
-                        <div class="text-[10px] text-slate-400 mt-0.5">{{ t.brand }} {{ t.model }} • Ubicación: {{ t.location || 'Almacén' }}</div>
-                      </td>
-
-                      <!-- Mantenimiento Periódico -->
-                      <td class="py-3 px-4">
-                        <div v-if="t.requiresPeriodicMaintenance">
-                          <span class="font-bold text-slate-200">Cada {{ t.maintenancePeriodDays }} días</span>
-                          <div class="text-[10px] text-slate-400">Último: {{ t.lastMaintenanceDate || 'Sin registro' }}</div>
-                          <div class="text-[11px] font-mono mt-0.5">
-                            <span v-if="t.maintStatus === 'overdue'" class="text-rose-400 font-bold flex items-center gap-1">
-                              <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> Vencido hace {{ Math.abs(t.daysToMaint) }}d ({{ t.effectiveNextMaint }})
-                            </span>
-                            <span v-else-if="t.maintStatus === 'urgent'" class="text-amber-400 font-bold">
-                              ⚠️ Vence en {{ t.daysToMaint }}d ({{ t.effectiveNextMaint }})
-                            </span>
-                            <span v-else class="text-emerald-400">
-                              Próximo: {{ t.effectiveNextMaint }}
-                            </span>
-                          </div>
-                        </div>
-                        <div v-else class="text-slate-500 italic text-[11px]">No configurado</div>
-                      </td>
-
-                      <!-- Pruebas Operativas -->
-                      <td class="py-3 px-4">
-                        <div v-if="t.requiresPeriodicTesting">
-                          <span class="font-bold text-slate-200">Cada {{ t.testingPeriodDays }} días</span>
-                          <div class="text-[10px] text-slate-400">Última: {{ t.lastTestingDate || 'Sin registro' }}</div>
-                          <div class="text-[11px] font-mono mt-0.5">
-                            <span v-if="t.testStatus === 'overdue'" class="text-rose-400 font-bold flex items-center gap-1">
-                              <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span> Pendiente hace {{ Math.abs(t.daysToTest) }}d
-                            </span>
-                            <span v-else-if="t.testStatus === 'urgent'" class="text-amber-400 font-bold">
-                              ⚠️ Prueba en {{ t.daysToTest }}d
-                            </span>
-                            <span v-else class="text-emerald-400">
-                              Próxima: {{ t.effectiveNextTest }}
-                            </span>
-                          </div>
-                        </div>
-                        <div v-else class="text-slate-500 italic text-[11px]">No requerida</div>
-                      </td>
-
-                      <!-- Estado -->
-                      <td class="py-3 px-4">
-                        <span :class="getStatusBadge(t.status)" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block">
-                          {{ getStatusLabel(t.status) }}
-                        </span>
-                      </td>
-
-                      <!-- Acciones Rápidas -->
-                      <td class="py-3 px-4 text-right">
-                        <div class="flex items-center justify-end gap-1.5" v-if="!isConsulta">
-                          <button v-if="t.requiresPeriodicTesting" @click="openTestModal(t)" class="text-xs bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border border-emerald-600/50 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1" title="Registrar prueba operativa de arranque">
-                            <span v-html="icons.bolt"></span>
-                            <span>Probar</span>
-                          </button>
-
-                          <button @click="openNewMaintenanceModal(t)" class="text-xs bg-blue-950/80 hover:bg-blue-900 text-blue-300 border border-blue-600/50 px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1" title="Programar mantenimiento preventivo">
-                            <span v-html="icons.wrench"></span>
-                            <span>Mantener</span>
-                          </button>
-
-                          <button @click="openCorrectiveModal(t)" class="text-xs bg-rose-950/80 hover:bg-rose-900 text-rose-300 border border-rose-600/50 px-2 py-1 rounded-lg transition-colors" title="Reportar avería o falla">
-                            <span>🚨</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- ============================================================== -->
-          <!-- PESTAÑA 4: HISTORIAL COMPLETO DE SERVICIOS Y PRUEBAS          -->
-          <!-- ============================================================== -->
-          <div v-if="maintenanceTab === 'historial'" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+          <div v-if="maintSubTab === 'historial'" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
             <div v-if="filteredCompletedMaintenances.length === 0" class="p-12 text-center text-slate-500 text-xs">
-              Aún no hay registros de mantenimientos finalizados ni pruebas operativas registradas.
+              Aún no hay registros de mantenimientos finalizados.
             </div>
             <div v-else class="overflow-x-auto">
               <table class="w-full text-left text-xs text-slate-300">
@@ -1607,10 +1503,10 @@
                   <tr>
                     <th class="py-3 px-4">Código / Fecha</th>
                     <th class="py-3 px-4">Equipo</th>
-                    <th class="py-3 px-4">Tipo de Servicio</th>
-                    <th class="py-3 px-4">Taller / Responsable</th>
+                    <th class="py-3 px-4">Tipo</th>
+                    <th class="py-3 px-4">Responsable</th>
                     <th class="py-3 px-4">Costo Real</th>
-                    <th class="py-3 px-4">Trabajo Realizado & Piezas</th>
+                    <th class="py-3 px-4">Trabajo Realizado / Estado Encontrado</th>
                     <th class="py-3 px-4">Próx. Servicio</th>
                   </tr>
                 </thead>
@@ -1628,27 +1524,293 @@
                       <span :class="{
                         'bg-rose-500/20 text-rose-400': m.type === 'correctivo',
                         'bg-blue-500/20 text-blue-400': m.type === 'preventivo',
-                        'bg-emerald-500/20 text-emerald-400': m.type === 'prueba'
+                        'bg-amber-500/20 text-amber-400': m.type === 'calentamiento' || m.type === 'prueba'
                       }" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">
-                        {{ m.type === 'prueba' ? 'Prueba Operativa' : m.type }}
+                        {{ m.type }}
                       </span>
-                      <div v-if="m.testingResult" class="text-[9px] uppercase font-bold mt-1 text-slate-400">
-                        Resultado: {{ m.testingResult }}
-                      </div>
                     </td>
                     <td class="py-3 px-4">
-                      <div>{{ m.provider }}</div>
-                      <div class="text-[10px] text-slate-400">{{ m.responsible }}</div>
+                      <div>{{ m.responsible }}</div>
+                      <div class="text-[10px] text-slate-400">{{ m.provider }}</div>
                     </td>
                     <td class="py-3 px-4 font-bold text-emerald-400">
                       ${{ (m.cost || 0).toLocaleString() }}
-                      <div v-if="m.estimatedCost" class="text-[9px] text-slate-400 font-normal">
-                        Est: ${{ (m.estimatedCost).toLocaleString() }}
-                      </div>
                     </td>
                     <td class="py-3 px-4 text-[11px] max-w-xs">
                       <div class="text-slate-200">{{ m.workDone || m.description }}</div>
-                      <div v-if="m.partsReplaced" class="text-slate-400 mt-0.5">Piezas: {{ m.partsReplaced }}</div>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate || 'N/A' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ============================================================== -->
+        <!-- 4B. VISTA: MÓDULO SEPARADO DE PRUEBAS DE CALENTAMIENTO         -->
+        <!-- ============================================================== -->
+        <section v-if="activeTab === 'calentamiento'" class="space-y-6 animate-fade-in">
+          
+          <!-- Encabezado del Módulo de Calentamiento -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-sm space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                    <span v-html="icons.flame"></span>
+                  </span>
+                  <h2 class="text-xl font-bold text-white tracking-tight">Módulo de Pruebas de Calentamiento</h2>
+                  <span v-if="pendingHeatingAlertsCount > 0" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/40 animate-pulse">
+                    {{ pendingHeatingAlertsCount }} Pendientes
+                  </span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Control de encendido, calentamiento y pruebas periódicas (cada 15 días, cada 1 mes o cada 3 meses) para plantas eléctricas, motores y maquinaria para evitar fallas por inactividad.</p>
+              </div>
+              
+              <!-- Botones de Acción -->
+              <div class="flex flex-wrap items-center gap-2" v-if="!isConsulta">
+                <button @click="openTestModal()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md shadow-amber-900/30 transition-all cursor-pointer">
+                  <span v-html="icons.bolt"></span>
+                  <span>⚡ Registrar Prueba Rápida</span>
+                </button>
+                <button @click="exportMaintenancesToExcel()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2.5 rounded-xl flex items-center gap-1.5 border border-slate-700 transition-all cursor-pointer">
+                  <span v-html="icons.excel"></span>
+                  <span>Excel</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Subtabs de Calentamiento y Buscador -->
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+              <div class="flex overflow-x-auto items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 no-scrollbar">
+                <!-- Subtab: Pendientes -->
+                <button @click="heatingSubTab = 'pendientes'" 
+                  :class="heatingSubTab === 'pendientes' ? 'bg-slate-800 text-amber-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                  class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
+                  <span>⚡ Pendientes de Prueba</span>
+                  <span v-if="pendingHeatingAlertsCount > 0" class="bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
+                    {{ pendingHeatingAlertsCount }}
+                  </span>
+                </button>
+
+                <!-- Subtab: Catálogo -->
+                <button @click="heatingSubTab = 'catalogo'" 
+                  :class="heatingSubTab === 'catalogo' ? 'bg-slate-800 text-emerald-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                  class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
+                  <span>🔥 Catálogo de Calentamiento</span>
+                  <span class="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">
+                    {{ allHeatingTools.length }}
+                  </span>
+                </button>
+
+                <!-- Subtab: Historial -->
+                <button @click="heatingSubTab = 'historial'" 
+                  :class="heatingSubTab === 'historial' ? 'bg-slate-800 text-blue-400 font-bold shadow-sm' : 'text-slate-400 hover:text-slate-200'" 
+                  class="px-3.5 py-1.5 rounded-lg text-xs whitespace-nowrap transition-colors flex items-center gap-2">
+                  <span>📜 Historial de Pruebas</span>
+                  <span class="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.2 rounded-full">
+                    {{ heatingHistory.length }}
+                  </span>
+                </button>
+              </div>
+
+              <!-- Buscador -->
+              <div class="relative w-full lg:w-72">
+                <input 
+                  v-model="heatingSearch" 
+                  type="text" 
+                  placeholder="Buscar maquinaria, generador..." 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pl-9 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors">
+                <span class="absolute left-3 top-2.5 text-slate-500" v-html="icons.search"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- PESTAÑA: PENDIENTES DE PRUEBA Y CALENTAMIENTO -->
+          <div v-if="heatingSubTab === 'pendientes'" class="space-y-4">
+            
+            <div class="bg-amber-950/20 border border-amber-800/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+              <div class="flex items-center gap-2 text-amber-200">
+                <span v-html="icons.flame" class="text-amber-400"></span>
+                <span>Plantas eléctricas y maquinaria con prueba de calentamiento vencida o próxima. Haz clic en <strong>"Realizar"</strong> para registrar cómo arrancó y cómo funcionó el equipo.</span>
+              </div>
+              <span class="bg-amber-500/20 text-amber-400 font-bold px-2.5 py-1 rounded-full whitespace-nowrap">
+                {{ pendingHeatingTools.length }} maquinaria(s) pendiente(s)
+              </span>
+            </div>
+
+            <!-- Si no hay pendientes -->
+            <div v-if="pendingHeatingTools.length === 0" class="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+                <span v-html="icons.check"></span>
+              </div>
+              <h3 class="text-base font-bold text-white">¡Todas las pruebas de calentamiento están al día!</h3>
+              <p class="text-xs text-slate-400 max-w-md mx-auto">No hay generadores ni motores pendientes de prueba o encendido periódico.</p>
+            </div>
+
+            <!-- Listado de Maquinaria Pendiente con Botón Realizar -->
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div v-for="t in pendingHeatingTools" :key="t.id" 
+                :class="t.testStatus === 'overdue' ? 'border-amber-800/60 bg-gradient-to-br from-amber-950/25 via-slate-900 to-slate-900' : 'border-slate-800 bg-slate-900'"
+                class="border rounded-2xl p-5 flex flex-col justify-between space-y-4 shadow-sm hover:border-slate-700 transition-all">
+                
+                <div>
+                  <div class="flex items-start justify-between gap-2">
+                    <span :class="t.testStatus === 'overdue' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' : 'bg-blue-500/20 text-blue-300 border border-blue-500/40'" 
+                      class="text-[10px] font-bold uppercase px-2.5 py-1 rounded-full flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full bg-amber-400" :class="t.testStatus === 'overdue' ? 'animate-ping' : ''"></span>
+                      <span>{{ t.testStatus === 'overdue' ? 'Calentamiento Vencido' : 'Próxima Prueba' }}</span>
+                    </span>
+
+                    <span class="text-[11px] font-mono font-bold" :class="t.testStatus === 'overdue' ? 'text-amber-400' : 'text-blue-400'">
+                      {{ t.daysToTest < 0 ? `Pendiente hace ${Math.abs(t.daysToTest)} día(s)` : (t.daysToTest === 0 ? 'Prueba HOY' : `Prueba en ${t.daysToTest} día(s)`) }}
+                    </span>
+                  </div>
+
+                  <div class="mt-3">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono text-xs font-bold text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded border border-amber-800/40">{{ t.code }}</span>
+                      <span class="text-xs text-slate-400">{{ t.category }}</span>
+                    </div>
+                    <h3 class="text-base font-bold text-white tracking-tight mt-1">{{ t.name }}</h3>
+                    <p class="text-xs text-slate-400">{{ t.brand }} {{ t.model }} • Ubicación: {{ t.location || 'Almacén Central' }}</p>
+                  </div>
+
+                  <!-- Detalle de Periodicidad y Fechas -->
+                  <div class="mt-3.5 bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs">
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Frecuencia de Calentamiento:</span>
+                      <span class="font-bold text-amber-400">{{ getTestingPeriodLabel(t.testingPeriod) }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Última Prueba Realizada:</span>
+                      <span class="font-mono text-slate-300">{{ t.lastTestingDate || 'Sin registro previo' }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-slate-400">Fecha Límite / Programada:</span>
+                      <span class="font-mono font-bold text-amber-300">{{ t.effectiveNextTest }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Botón de Acción Prominente: Realizar -->
+                <div class="pt-3 border-t border-slate-800/80 flex items-center justify-between" v-if="!isConsulta">
+                  <span class="text-[11px] text-slate-400">Estado: {{ getStatusLabel(t.status) }}</span>
+
+                  <button @click="openPerformHeating(t)" 
+                    class="bg-amber-600 hover:bg-amber-500 active:bg-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-2 shadow-lg shadow-amber-950/50 transition-all cursor-pointer">
+                    <span v-html="icons.bolt"></span>
+                    <span>Realizar Prueba</span>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+          <!-- PESTAÑA: CATÁLOGO DE CALENTAMIENTO -->
+          <div v-if="heatingSubTab === 'catalogo'" class="space-y-4">
+            <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+              <div v-if="filteredHeatingTools.length === 0" class="p-12 text-center text-slate-500 text-xs">
+                No hay maquinaria configurada para pruebas periódicas de calentamiento.
+              </div>
+              <div v-else class="overflow-x-auto">
+                <table class="w-full text-left text-xs text-slate-300">
+                  <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                    <tr>
+                      <th class="py-3 px-4">Equipo / Maquinaria</th>
+                      <th class="py-3 px-4">Periodicidad de Calentamiento</th>
+                      <th class="py-3 px-4">Última Prueba</th>
+                      <th class="py-3 px-4">Próxima Fecha</th>
+                      <th class="py-3 px-4">Estado</th>
+                      <th class="py-3 px-4 text-right">Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-slate-800/60">
+                    <tr v-for="t in filteredHeatingTools" :key="t.id" class="hover:bg-slate-800/40 transition-colors">
+                      <td class="py-3 px-4">
+                        <div class="flex items-center gap-2">
+                          <span class="font-mono font-bold text-amber-400">{{ t.code }}</span>
+                          <span class="text-white font-semibold">{{ t.name }}</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 mt-0.5">{{ t.brand }} {{ t.model }} • Ubicación: {{ t.location || 'Almacén' }}</div>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span class="bg-amber-950/60 text-amber-300 border border-amber-800/50 px-2 py-0.5 rounded-full font-semibold text-[11px]">
+                          {{ getTestingPeriodLabel(t.testingPeriod) }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 font-mono text-slate-300">
+                        {{ t.lastTestingDate || 'Sin registro' }}
+                      </td>
+                      <td class="py-3 px-4">
+                        <div class="font-mono font-bold" :class="t.testStatus === 'overdue' ? 'text-amber-400' : 'text-slate-200'">
+                          {{ t.effectiveNextTest || 'N/A' }}
+                        </div>
+                        <span v-if="t.testStatus === 'overdue'" class="text-[10px] text-amber-400 font-semibold block">
+                          Pendiente hace {{ Math.abs(t.daysToTest) }}d
+                        </span>
+                        <span v-else-if="t.daysToTest !== null" class="text-[10px] text-slate-400 block">
+                          En {{ t.daysToTest }} día(s)
+                        </span>
+                      </td>
+                      <td class="py-3 px-4">
+                        <span :class="getStatusBadge(t.status)" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block">
+                          {{ getStatusLabel(t.status) }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-4 text-right" v-if="!isConsulta">
+                        <button @click="openPerformHeating(t)" class="bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs px-3 py-1 rounded-lg shadow-sm transition-colors">
+                          Realizar
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- PESTAÑA: HISTORIAL DE PRUEBAS DE CALENTAMIENTO -->
+          <div v-if="heatingSubTab === 'historial'" class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div v-if="heatingHistory.length === 0" class="p-12 text-center text-slate-500 text-xs">
+              Aún no hay registros de pruebas de calentamiento realizadas.
+            </div>
+            <div v-else class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-300">
+                <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-800">
+                  <tr>
+                    <th class="py-3 px-4">Código / Fecha</th>
+                    <th class="py-3 px-4">Equipo</th>
+                    <th class="py-3 px-4">Resultado</th>
+                    <th class="py-3 px-4">Responsable / Operador</th>
+                    <th class="py-3 px-4">Descripción de Cómo Funcionó</th>
+                    <th class="py-3 px-4">Próxima Prueba</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                  <tr v-for="m in heatingHistory" :key="m.id" class="hover:bg-slate-800/40 transition-colors">
+                    <td class="py-3 px-4">
+                      <span class="font-mono font-bold text-amber-400">{{ m.code }}</span>
+                      <div class="text-[10px] text-slate-400">{{ m.completedDate || m.scheduledDate }}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span class="font-mono text-emerald-400">{{ m.toolCode }}</span>
+                      <div class="font-semibold text-white">{{ m.toolName }}</div>
+                    </td>
+                    <td class="py-3 px-4">
+                      <span :class="m.testingResult === 'fallido' || m.testingResult === 'con_novedad' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'" class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full inline-block">
+                        {{ m.testingResult === 'fallido' || m.testingResult === 'con_novedad' ? 'Con Novedad' : 'Satisfactorio (OK)' }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-4">
+                      <div class="font-medium text-white">{{ m.responsible }}</div>
+                    </td>
+                    <td class="py-3 px-4 text-[11px] max-w-sm">
+                      <div class="text-slate-200">{{ m.workDone || m.description }}</div>
                     </td>
                     <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate || 'N/A' }}</td>
                   </tr>
@@ -2332,61 +2494,131 @@
 
               <!-- Checkbox Mantenimiento Periódico -->
               <div class="space-y-3 pt-2 border-t border-slate-800/80">
-                <label class="flex items-center gap-2 cursor-pointer">
+                <label class="flex items-center gap-2.5 cursor-pointer">
                   <input type="checkbox" v-model="toolForm.requiresPeriodicMaintenance" @change="updateToolCalculatedDates()" class="w-4 h-4 rounded text-emerald-500 focus:ring-0">
-                  <span class="text-slate-200 font-semibold text-xs">¿Requiere Mantenimiento Preventivo Periódico?</span>
+                  <span class="text-slate-200 font-bold text-xs">¿Necesita mantenimiento preventivo?</span>
                 </label>
 
-                <div v-if="toolForm.requiresPeriodicMaintenance" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pl-6 animate-fade-in">
+                <div v-if="toolForm.requiresPeriodicMaintenance" class="pl-6 space-y-3 animate-fade-in">
                   <div>
-                    <label class="block font-semibold text-slate-400 text-[11px] mb-1">Frecuencia (en días) *</label>
-                    <input v-model.number="toolForm.maintenancePeriodDays" @input="updateToolCalculatedDates()" type="number" min="1" placeholder="Ej: 90" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500">
-                    <div class="flex flex-wrap gap-1 mt-1 text-[10px]">
-                      <button type="button" @click="toolForm.maintenancePeriodDays = 30; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">1m (30d)</button>
-                      <button type="button" @click="toolForm.maintenancePeriodDays = 90; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">3m (90d)</button>
-                      <button type="button" @click="toolForm.maintenancePeriodDays = 180; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">6m (180d)</button>
-                      <button type="button" @click="toolForm.maintenancePeriodDays = 365; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">1a (365d)</button>
+                    <label class="block font-semibold text-slate-300 text-[11px] mb-1.5">
+                      Periodicidad del Mantenimiento Preventivo *
+                    </label>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      <button 
+                        type="button" 
+                        @click="setMaintenancePeriod('mensual')" 
+                        :class="toolForm.maintenancePeriod === 'mensual' ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Mensual</span>
+                        <span class="text-[10px] opacity-75 font-mono">30 días</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        @click="setMaintenancePeriod('trimestral')" 
+                        :class="toolForm.maintenancePeriod === 'trimestral' ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Trimestral</span>
+                        <span class="text-[10px] opacity-75 font-mono">90 días</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        @click="setMaintenancePeriod('semestral')" 
+                        :class="toolForm.maintenancePeriod === 'semestral' ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Semestral</span>
+                        <span class="text-[10px] opacity-75 font-mono">180 días</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        @click="setMaintenancePeriod('anual')" 
+                        :class="toolForm.maintenancePeriod === 'anual' ? 'bg-emerald-600 text-white font-bold ring-2 ring-emerald-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Anual</span>
+                        <span class="text-[10px] opacity-75 font-mono">365 días</span>
+                      </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label class="block font-semibold text-slate-400 text-[11px] mb-1">Fecha Último Mantenimiento</label>
-                    <input v-model="toolForm.lastMaintenanceDate" @change="updateToolCalculatedDates()" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500">
-                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label class="block font-semibold text-slate-400 text-[11px] mb-1">Días de Ciclo</label>
+                      <input v-model.number="toolForm.maintenancePeriodDays" @input="updateToolCalculatedDates()" type="number" min="1" placeholder="Ej: 90" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 text-xs">
+                    </div>
 
-                  <div>
-                    <label class="block font-semibold text-slate-400 text-[11px] mb-1">Próximo Mantenimiento</label>
-                    <input v-model="toolForm.nextMaintenanceDate" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500">
+                    <div>
+                      <label class="block font-semibold text-slate-400 text-[11px] mb-1">Último Mantenimiento</label>
+                      <input v-model="toolForm.lastMaintenanceDate" @change="updateToolCalculatedDates()" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 text-xs">
+                    </div>
+
+                    <div>
+                      <label class="block font-semibold text-slate-400 text-[11px] mb-1">Próximo Mantenimiento</label>
+                      <input v-model="toolForm.nextMaintenanceDate" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 text-xs">
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <!-- Checkbox Pruebas Operativas Periódicas -->
+              <!-- Checkbox Pruebas y Calentamiento Periódico -->
               <div class="space-y-3 pt-3 border-t border-slate-800/80">
-                <label class="flex items-center gap-2 cursor-pointer">
+                <label class="flex items-center gap-2.5 cursor-pointer">
                   <input type="checkbox" v-model="toolForm.requiresPeriodicTesting" @change="updateToolCalculatedDates()" class="w-4 h-4 rounded text-blue-500 focus:ring-0">
-                  <span class="text-slate-200 font-semibold text-xs">¿Requiere Pruebas Operativas / Arranques Periódicos?</span>
+                  <span class="text-slate-200 font-bold text-xs">¿Requiere pruebas y calentamiento periódico?</span>
                 </label>
 
-                <div v-if="toolForm.requiresPeriodicTesting" class="grid grid-cols-1 sm:grid-cols-3 gap-3 pl-6 animate-fade-in">
+                <div v-if="toolForm.requiresPeriodicTesting" class="pl-6 space-y-3 animate-fade-in">
                   <div>
-                    <label class="block font-semibold text-slate-400 text-[11px] mb-1">Frecuencia de Prueba (días) *</label>
-                    <input v-model.number="toolForm.testingPeriodDays" @input="updateToolCalculatedDates()" type="number" min="1" placeholder="Ej: 15" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-blue-500">
-                    <div class="flex flex-wrap gap-1 mt-1 text-[10px]">
-                      <button type="button" @click="toolForm.testingPeriodDays = 7; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">Semanal (7d)</button>
-                      <button type="button" @click="toolForm.testingPeriodDays = 15; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">Quincenal (15d)</button>
-                      <button type="button" @click="toolForm.testingPeriodDays = 30; updateToolCalculatedDates()" class="px-1.5 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300">Mensual (30d)</button>
+                    <label class="block font-semibold text-slate-300 text-[11px] mb-1.5">
+                      Periodicidad de Pruebas y Calentamiento *
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button 
+                        type="button" 
+                        @click="setTestingPeriod('15_dias')" 
+                        :class="toolForm.testingPeriod === '15_dias' ? 'bg-amber-600 text-white font-bold ring-2 ring-amber-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Cada 15 días</span>
+                        <span class="text-[10px] opacity-75 font-mono">Quincenal (15d)</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        @click="setTestingPeriod('1_mes')" 
+                        :class="toolForm.testingPeriod === '1_mes' ? 'bg-amber-600 text-white font-bold ring-2 ring-amber-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Cada 1 mes</span>
+                        <span class="text-[10px] opacity-75 font-mono">Mensual (30d)</span>
+                      </button>
+
+                      <button 
+                        type="button" 
+                        @click="setTestingPeriod('3_meses')" 
+                        :class="toolForm.testingPeriod === '3_meses' ? 'bg-amber-600 text-white font-bold ring-2 ring-amber-400' : 'bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-850 hover:text-white'"
+                        class="px-3 py-2 rounded-xl text-xs flex flex-col items-center justify-center transition-all cursor-pointer">
+                        <span class="font-bold">Cada 3 meses</span>
+                        <span class="text-[10px] opacity-75 font-mono">Trimestral (90d)</span>
+                      </button>
                     </div>
                   </div>
 
-                  <div>
-                    <label class="block font-semibold text-slate-400 text-[11px] mb-1">Fecha Última Prueba</label>
-                    <input v-model="toolForm.lastTestingDate" @change="updateToolCalculatedDates()" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-blue-500">
-                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label class="block font-semibold text-slate-400 text-[11px] mb-1">Días de Ciclo</label>
+                      <input v-model.number="toolForm.testingPeriodDays" @input="updateToolCalculatedDates()" type="number" min="1" placeholder="Ej: 15" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-amber-500 text-xs">
+                    </div>
 
-                  <div>
-                    <label class="block font-semibold text-slate-400 text-[11px] mb-1">Próxima Prueba Operativa</label>
-                    <input v-model="toolForm.nextTestingDate" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-blue-500">
+                    <div>
+                      <label class="block font-semibold text-slate-400 text-[11px] mb-1">Última Prueba / Calentamiento</label>
+                      <input v-model="toolForm.lastTestingDate" @change="updateToolCalculatedDates()" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-amber-500 text-xs">
+                    </div>
+
+                    <div>
+                      <label class="block font-semibold text-slate-400 text-[11px] mb-1">Próxima Prueba Programada</label>
+                      <input v-model="toolForm.nextTestingDate" type="date" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-amber-500 text-xs">
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2457,18 +2689,48 @@
                 <span v-html="icons.wrench" class="text-emerald-400"></span> Programa Periódico & Pruebas Operativas
               </h4>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                <div v-if="selectedToolForDetail.requiresPeriodicMaintenance" class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                  <span class="text-slate-400 block font-semibold text-[11px]">Mantenimiento Preventivo</span>
-                  <div class="text-white font-bold mt-0.5">Cada {{ selectedToolForDetail.maintenancePeriodDays }} días</div>
-                  <div class="text-[11px] text-slate-400 mt-1">Último: {{ selectedToolForDetail.lastMaintenanceDate || 'Sin registro' }}</div>
-                  <div class="text-[11px] text-emerald-400 font-mono">Próximo: {{ selectedToolForDetail.nextMaintenanceDate || 'Pendiente cálculo' }}</div>
+                <div v-if="selectedToolForDetail.requiresPeriodicMaintenance" class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-emerald-400 font-bold text-[11px] flex items-center gap-1">
+                        <span>🔧</span> Mantenimiento Preventivo
+                      </span>
+                      <span class="font-mono text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                        {{ getMaintenancePeriodLabel(selectedToolForDetail.maintenancePeriod) }} ({{ selectedToolForDetail.maintenancePeriodDays }}d)
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-2">Último: <span class="text-slate-200 font-mono">{{ selectedToolForDetail.lastMaintenanceDate || 'Sin registro' }}</span></div>
+                    <div class="text-[11px] text-emerald-400 font-mono">Próximo: <span class="font-bold">{{ selectedToolForDetail.nextMaintenanceDate || 'Pendiente cálculo' }}</span></div>
+                  </div>
+                  <button 
+                    v-if="!isConsulta"
+                    @click="showToolDetailModal = false; openPerformMaintenance(selectedToolForDetail)" 
+                    class="w-full mt-2 py-1.5 px-3 bg-emerald-600/90 hover:bg-emerald-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                    <span v-html="icons.wrench"></span>
+                    <span>Realizar Mantenimiento</span>
+                  </button>
                 </div>
 
-                <div v-if="selectedToolForDetail.requiresPeriodicTesting" class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                  <span class="text-slate-400 block font-semibold text-[11px]">Pruebas de Arranque / Operativas</span>
-                  <div class="text-white font-bold mt-0.5">Cada {{ selectedToolForDetail.testingPeriodDays }} días</div>
-                  <div class="text-[11px] text-slate-400 mt-1">Última: {{ selectedToolForDetail.lastTestingDate || 'Sin registro' }}</div>
-                  <div class="text-[11px] text-blue-400 font-mono">Próxima: {{ selectedToolForDetail.nextTestingDate || 'Pendiente cálculo' }}</div>
+                <div v-if="selectedToolForDetail.requiresPeriodicTesting" class="bg-slate-900/60 p-3 rounded-xl border border-slate-800 flex flex-col justify-between space-y-2">
+                  <div>
+                    <div class="flex items-center justify-between">
+                      <span class="text-amber-400 font-bold text-[11px] flex items-center gap-1">
+                        <span>⚡</span> Pruebas y Calentamiento
+                      </span>
+                      <span class="font-mono text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                        {{ getTestingPeriodLabel(selectedToolForDetail.testingPeriod) }} ({{ selectedToolForDetail.testingPeriodDays }}d)
+                      </span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 mt-2">Última: <span class="text-slate-200 font-mono">{{ selectedToolForDetail.lastTestingDate || 'Sin registro' }}</span></div>
+                    <div class="text-[11px] text-amber-400 font-mono">Próxima: <span class="font-bold">{{ selectedToolForDetail.nextTestingDate || 'Pendiente cálculo' }}</span></div>
+                  </div>
+                  <button 
+                    v-if="!isConsulta"
+                    @click="showToolDetailModal = false; openPerformHeating(selectedToolForDetail)" 
+                    class="w-full mt-2 py-1.5 px-3 bg-amber-600/90 hover:bg-amber-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer">
+                    <span v-html="icons.flame"></span>
+                    <span>Realizar Calentamiento</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -2499,26 +2761,98 @@
               </div>
             </div>
 
-            <!-- Historial de Mantenimientos -->
+            <!-- HOJA DE VIDA TÉCNICA E HISTORIAL DE INTERVENCIONES -->
             <div class="space-y-3">
-              <h4 class="font-bold text-white text-sm flex items-center gap-2">
-                <span v-html="icons.maintenance"></span> Historial de Mantenimientos e Intervenciones ({{ toolHistoryMaintenances.length }})
-              </h4>
-
-              <div v-if="toolHistoryMaintenances.length === 0" class="p-4 bg-slate-950/50 rounded-xl border border-slate-800 text-slate-500 text-center">
-                No registra mantenimientos previos.
+              <div class="flex items-center justify-between">
+                <h4 class="font-bold text-white text-sm flex items-center gap-2">
+                  <span v-html="icons.wrench" class="text-emerald-400"></span>
+                  <span>Hoja de Vida Técnica & Intervenciones ({{ toolHistoryMaintenances.length }})</span>
+                </h4>
+                <div class="flex items-center gap-2" v-if="!isConsulta">
+                  <button 
+                    v-if="selectedToolForDetail.requiresPeriodicMaintenance"
+                    @click="showToolDetailModal = false; openPerformMaintenance(selectedToolForDetail)" 
+                    class="text-[11px] font-bold text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-800/40 px-2.5 py-1 rounded-lg">
+                    + Registrar Mantenimiento
+                  </button>
+                  <button 
+                    v-if="selectedToolForDetail.requiresPeriodicTesting"
+                    @click="showToolDetailModal = false; openPerformHeating(selectedToolForDetail)" 
+                    class="text-[11px] font-bold text-amber-400 hover:text-amber-300 bg-amber-950/40 border border-amber-800/40 px-2.5 py-1 rounded-lg">
+                    + Registrar Calentamiento
+                  </button>
+                </div>
               </div>
 
-              <div v-else class="space-y-2">
-                <div v-for="m in toolHistoryMaintenances" :key="m.id" class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1">
-                  <div class="flex items-center justify-between">
-                    <span class="font-mono text-blue-400 font-semibold">{{ m.code }} ({{ m.type }})</span>
-                    <span class="text-emerald-400 font-bold">${{ m.cost || 0 }}</span>
+              <div v-if="toolHistoryMaintenances.length === 0" class="p-4 bg-slate-950/50 rounded-xl border border-slate-800 text-slate-500 text-center">
+                No registra intervenciones, pruebas ni mantenimientos previos en la hoja de vida.
+              </div>
+
+              <div v-else class="space-y-3">
+                <div 
+                  v-for="m in toolHistoryMaintenances" 
+                  :key="m.id" 
+                  :class="{
+                    'border-amber-800/50 bg-amber-950/10': m.type === 'calentamiento',
+                    'border-emerald-800/50 bg-emerald-950/10': m.type === 'preventivo',
+                    'border-rose-800/50 bg-rose-950/10': m.type === 'correctivo'
+                  }"
+                  class="p-3.5 bg-slate-950 rounded-xl border space-y-2">
+                  
+                  <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                      <span 
+                        v-if="m.type === 'calentamiento'" 
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase">
+                        ⚡ Prueba de Calentamiento
+                      </span>
+                      <span 
+                        v-else-if="m.type === 'preventivo'" 
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
+                        🔧 Mantenimiento Preventivo
+                      </span>
+                      <span 
+                        v-else 
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 uppercase">
+                        🚨 Mantenimiento Correctivo
+                      </span>
+
+                      <span class="font-mono text-slate-400 text-xs font-semibold">{{ m.code }}</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                      <span 
+                        v-if="m.testingResult" 
+                        :class="m.testingResult === 'satisfactorio' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded border">
+                        {{ m.testingResult === 'satisfactorio' ? '✓ Satisfactorio' : '⚠️ Con Novedad' }}
+                      </span>
+                      <span v-if="m.cost" class="text-emerald-400 font-mono font-bold">${{ m.cost.toLocaleString() }}</span>
+                    </div>
                   </div>
-                  <p class="text-slate-300 text-xs">{{ m.description }}</p>
-                  <div class="text-[11px] text-slate-400">
-                    Taller: {{ m.provider }} | Fecha: {{ m.completedDate || m.scheduledDate }}
+
+                  <!-- Breve Descripción Registrada: Cómo encontró / Cómo funcionó el equipo -->
+                  <div class="bg-slate-900/90 rounded-lg p-2.5 border border-slate-800/80">
+                    <span class="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                      {{ m.type === 'calentamiento' ? 'Inspección / Cómo Funcionó el Equipo:' : 'Diagnóstico / Trabajo Realizado:' }}
+                    </span>
+                    <p class="text-slate-200 text-xs leading-relaxed font-sans">
+                      {{ m.workDone || m.description }}
+                    </p>
                   </div>
+
+                  <div class="flex items-center justify-between text-[11px] text-slate-400 flex-wrap gap-2 pt-1 border-t border-slate-800/50">
+                    <div>
+                      Responsable / Taller: <strong class="text-slate-300">{{ m.responsible || m.provider }}</strong>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span>Fecha: <strong class="text-slate-200 font-mono">{{ m.completedDate || m.scheduledDate }}</strong></span>
+                      <span v-if="m.nextMaintenanceDate" class="text-emerald-400 font-mono">
+                        Próx: <strong>{{ m.nextMaintenanceDate }}</strong>
+                      </span>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
@@ -2934,6 +3268,223 @@
             <button @click="saveOperationalTest()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5">
               <span>✓</span>
               <span>Guardar Registro de Prueba</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 5D. CUADRO SENCILLO: REALIZAR MANTENIMIENTO PREVENTIVO -->
+      <div v-if="showPerformMaintenanceModal && performMaintForm.tool" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <span v-html="icons.wrench"></span>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Realizar Mantenimiento Preventivo</h3>
+                <p class="text-xs text-slate-400">Registro rápido para la hoja de vida técnica</p>
+              </div>
+            </div>
+            <button @click="showPerformMaintenanceModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            
+            <!-- Resumen del Equipo -->
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800/40 text-[11px]">
+                  {{ performMaintForm.tool.code }}
+                </span>
+                <span class="text-slate-400 text-[11px]">
+                  Periodicidad: <strong class="text-white">{{ getMaintenancePeriodLabel(performMaintForm.tool.maintenancePeriod) }}</strong> ({{ performMaintForm.tool.maintenancePeriodDays }}d)
+                </span>
+              </div>
+              <h4 class="text-sm font-bold text-white">{{ performMaintForm.tool.name }}</h4>
+              <p class="text-slate-400 text-[11px]">{{ performMaintForm.tool.brand }} {{ performMaintForm.tool.model }}</p>
+            </div>
+
+            <!-- Fecha y Responsable -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha de Realización *</label>
+                <input 
+                  v-model="performMaintForm.date" 
+                  @change="updatePerformMaintNextDate()" 
+                  type="date" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-emerald-500 text-xs">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Técnico / Responsable</label>
+                <input 
+                  v-model="performMaintForm.responsible" 
+                  type="text" 
+                  placeholder="Nombre de quien realizó" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 text-xs">
+              </div>
+            </div>
+
+            <!-- Breve Descripción (Requisito Explícito del Usuario) -->
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">
+                Breve descripción de cómo encontró o cómo funcionó el equipo *
+              </label>
+              <textarea 
+                v-model="performMaintForm.description" 
+                rows="3" 
+                placeholder="Describe cómo se encontró el equipo, trabajos realizados (cambio de aceite, filtros, limpieza, lubricación) y cómo quedó operando..." 
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-emerald-500 text-xs placeholder:text-slate-600"></textarea>
+            </div>
+
+            <!-- Costo Opcional -->
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">Costo del Mantenimiento ($ opcional)</label>
+              <div class="relative">
+                <span class="absolute left-3 top-2 text-slate-500 font-bold">$</span>
+                <input 
+                  v-model.number="performMaintForm.cost" 
+                  type="number" 
+                  step="0.01" 
+                  min="0" 
+                  placeholder="0.00" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 pl-7 text-white font-mono focus:border-emerald-500 text-xs">
+              </div>
+            </div>
+
+            <!-- Tarjeta de Próxima Fecha Calculada -->
+            <div class="p-3 bg-emerald-950/30 border border-emerald-800/40 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-emerald-400 font-bold">📅 Próximo Mantenimiento:</span>
+                <span class="font-mono font-bold text-white text-xs">{{ performMaintForm.calculatedNextDate || 'Calculando...' }}</span>
+              </div>
+              <span class="text-[10px] text-emerald-400/80">Ciclo automático</span>
+            </div>
+
+          </div>
+
+          <div class="p-4 border-t border-slate-800 flex items-center justify-end gap-2 bg-slate-900/50">
+            <button @click="showPerformMaintenanceModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="savePerformMaintenance()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <span v-html="icons.wrench"></span>
+              <span>Guardar en Hoja de Vida</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 5E. CUADRO SENCILLO: REALIZAR PRUEBA Y CALENTAMIENTO PERIÓDICO -->
+      <div v-if="showPerformHeatingModal && performHeatingForm.tool" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[92vh] flex flex-col shadow-2xl overflow-hidden">
+          
+          <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
+                <span v-html="icons.flame"></span>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Realizar Prueba y Calentamiento</h3>
+                <p class="text-xs text-slate-400">Encendido e inspección operativa de maquinaria</p>
+              </div>
+            </div>
+            <button @click="showPerformHeatingModal = false" class="text-slate-400 hover:text-white" v-html="icons.close"></button>
+          </div>
+
+          <div class="p-5 overflow-y-auto space-y-4 text-xs">
+            
+            <!-- Resumen del Equipo -->
+            <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-amber-400 font-bold bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/40 text-[11px]">
+                  {{ performHeatingForm.tool.code }}
+                </span>
+                <span class="text-slate-400 text-[11px]">
+                  Frecuencia: <strong class="text-white">{{ getTestingPeriodLabel(performHeatingForm.tool.testingPeriod) }}</strong> ({{ performHeatingForm.tool.testingPeriodDays }}d)
+                </span>
+              </div>
+              <h4 class="text-sm font-bold text-white">{{ performHeatingForm.tool.name }}</h4>
+              <p class="text-slate-400 text-[11px]">{{ performHeatingForm.tool.brand }} {{ performHeatingForm.tool.model }}</p>
+            </div>
+
+            <!-- Fecha y Responsable -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Fecha de la Prueba / Calentamiento *</label>
+                <input 
+                  v-model="performHeatingForm.date" 
+                  @change="updatePerformHeatingNextDate()" 
+                  type="date" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white font-mono focus:border-amber-500 text-xs">
+              </div>
+
+              <div>
+                <label class="block font-semibold text-slate-300 mb-1">Operador / Inspector</label>
+                <input 
+                  v-model="performHeatingForm.responsible" 
+                  type="text" 
+                  placeholder="Nombre de quien realizó la prueba" 
+                  class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-amber-500 text-xs">
+              </div>
+            </div>
+
+            <!-- Resultado de la Prueba -->
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1.5">Resultado del Arranque y Calentamiento *</label>
+              <div class="grid grid-cols-2 gap-3">
+                <button 
+                  type="button" 
+                  @click="performHeatingForm.result = 'satisfactorio'"
+                  :class="performHeatingForm.result === 'satisfactorio' ? 'bg-emerald-950/70 border-emerald-500 text-emerald-300 ring-2 ring-emerald-500/40' : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-900'"
+                  class="p-2.5 rounded-xl border flex items-center justify-center gap-2 font-bold transition-all cursor-pointer">
+                  <span>✓</span> Satisfactorio (OK)
+                </button>
+
+                <button 
+                  type="button" 
+                  @click="performHeatingForm.result = 'con_novedad'"
+                  :class="performHeatingForm.result === 'con_novedad' ? 'bg-rose-950/70 border-rose-500 text-rose-300 ring-2 ring-rose-500/40' : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-900'"
+                  class="p-2.5 rounded-xl border flex items-center justify-center gap-2 font-bold transition-all cursor-pointer">
+                  <span>⚠️</span> Con Novedad / Fallas
+                </button>
+              </div>
+            </div>
+
+            <!-- Breve Descripción (Requisito Explícito del Usuario) -->
+            <div>
+              <label class="block font-semibold text-slate-300 mb-1">
+                Breve descripción de cómo encontró o cómo funcionó el equipo *
+              </label>
+              <textarea 
+                v-model="performHeatingForm.description" 
+                rows="3" 
+                placeholder="Ej: Se encendió la planta por 20 minutos. Arranque al primer intento, nivel de combustible y aceite correctos, ruido normal, voltaje estable a 220V..." 
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:border-amber-500 text-xs placeholder:text-slate-600"></textarea>
+            </div>
+
+            <!-- Tarjeta de Próxima Prueba Calculada -->
+            <div class="p-3 bg-amber-950/30 border border-amber-800/40 rounded-xl flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-amber-400 font-bold">⚡ Próxima Prueba:</span>
+                <span class="font-mono font-bold text-white text-xs">{{ performHeatingForm.calculatedNextDate || 'Calculando...' }}</span>
+              </div>
+              <span class="text-[10px] text-amber-400/80">Ciclo automático</span>
+            </div>
+
+          </div>
+
+          <div class="p-4 border-t border-slate-800 flex items-center justify-end gap-2 bg-slate-900/50">
+            <button @click="showPerformHeatingModal = false" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-800">
+              Cancelar
+            </button>
+            <button @click="savePerformHeating()" class="px-5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-sm flex items-center gap-1.5 cursor-pointer">
+              <span v-html="icons.bolt"></span>
+              <span>Guardar en Hoja de Vida</span>
             </button>
           </div>
 

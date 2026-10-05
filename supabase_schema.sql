@@ -48,10 +48,12 @@ CREATE TABLE IF NOT EXISTS public.tools (
     notes TEXT,
     -- Campos para mantenimiento periódico y pruebas operativas
     requires_periodic_maintenance BOOLEAN DEFAULT FALSE,
+    maintenance_period TEXT DEFAULT 'trimestral', -- 'mensual', 'trimestral', 'semestral', 'anual'
     maintenance_period_days INTEGER DEFAULT 90,
     last_maintenance_date TEXT,
     next_maintenance_date TEXT,
     requires_periodic_testing BOOLEAN DEFAULT FALSE,
+    testing_period TEXT DEFAULT '15_dias', -- '15_dias', '1_mes', '3_meses'
     testing_period_days INTEGER DEFAULT 15,
     last_testing_date TEXT,
     next_testing_date TEXT,
@@ -121,10 +123,12 @@ CREATE TABLE IF NOT EXISTS public.maintenances (
 
 -- Migraciones automáticas para tablas ya creadas previamente
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS requires_periodic_maintenance BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS maintenance_period TEXT DEFAULT 'trimestral';
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS maintenance_period_days INTEGER DEFAULT 90;
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS last_maintenance_date TEXT;
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS next_maintenance_date TEXT;
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS requires_periodic_testing BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS testing_period TEXT DEFAULT '15_dias';
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS testing_period_days INTEGER DEFAULT 15;
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS last_testing_date TEXT;
 ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS next_testing_date TEXT;
