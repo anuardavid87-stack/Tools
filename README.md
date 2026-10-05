@@ -58,10 +58,25 @@ La plataforma incluye 3 perfiles listos para probar:
   - Registro de condición al retornar (Excelente, Buena, Dañada, Incompleta).
   - **Derivación automática a taller**: Si el técnico devuelve la herramienta con fallas o roturas, con una sola casilla se crea automáticamente la orden de mantenimiento correctivo y el equipo queda bloqueado en taller.
 
-### 5. 🔧 Gestión de Mantenimientos
-- Registro de mantenimientos **Preventivos** y **Correctivos**.
-- Programación de fechas, asignación de taller/proveedor y responsable.
-- Cierre de mantenimiento con registro de costo final, trabajo realizado, repuestos cambiados y reprogramación sugerida para el próximo servicio preventivo.
+### 5. 🔧 Módulo Integral de Mantenimientos Periódicos, Pruebas y Correctivos (Nuevo)
+Especialmente concebido para plantas eléctricas, motores de combustión, generadores, compresores y maquinaria de construcción sujeta a inspecciones periódicas:
+- **Configuración de Periodicidad al Crear/Editar Equipos**:
+  - **Mantenimiento Preventivo Periódico**: Define la frecuencia en días (ej. 30, 90, 180, 365 días), fecha de última intervención y cálculo automático de la próxima fecha.
+  - **Pruebas Operativas de Arranque**: Define la periodicidad de encendido preventivo (ej. cada 7, 15 o 30 días) para evitar que plantas y motores queden inoperativos por falta de uso.
+- **Centro de Alertas y Vencimientos en Vivo**:
+  - Alertas visuales con badges y contadores en tiempo real en la barra de navegación, dashboard y módulo de taller.
+  - Clasificación en: **Mantenimientos Vencidos**, **Pruebas Vencidas**, **Averías Activas** y **Próximos a Vencer (15 días)**.
+  - Acciones rápidas de 1-clic directo desde cada tarjeta de alerta para atender el equipo inmediatamente.
+- **Mantenimientos Correctivos y Reporte de Averías**:
+  - Registro de fallas mecánicas, eléctricas o estructurales detectadas en almacén o retornadas de obra.
+  - Especificación técnica del **trabajo a realizar** para cotizar ante talleres autorizados.
+  - Estimación de **Costo Aproximado / Presupuesto ($)** para control previo a la orden de compra.
+  - Niveles de prioridad: *Urgente*, *Alta*, *Media*, *Baja*.
+- **Registro de Pruebas Operativas Periódicas**:
+  - Registro de inspección de encendido, parámetros de voltaje/frecuencia, lubricantes y nivel de combustible.
+  - Calificación *Satisfactoria* o *Fallida*. Si la prueba resulta fallida, el sistema bloquea el equipo y abre automáticamente la orden de mantenimiento correctivo.
+- **Cierre y Comparativa de Costos**:
+  - Cierre de órdenes con registro del trabajo realizado, piezas cambiadas y comparación entre el costo estimado presupuestado vs. costo real final.
 
 ### 6. 👥 Directorio de Personal Técnico
 - Registro de cédula/DNI, nombres, teléfono, correo y especialidad.

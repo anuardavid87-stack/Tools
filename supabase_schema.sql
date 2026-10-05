@@ -46,6 +46,15 @@ CREATE TABLE IF NOT EXISTS public.tools (
     acquisition_date TEXT,
     cost NUMERIC DEFAULT 0,
     notes TEXT,
+    -- Campos para mantenimiento periódico y pruebas operativas
+    requires_periodic_maintenance BOOLEAN DEFAULT FALSE,
+    maintenance_period_days INTEGER DEFAULT 90,
+    last_maintenance_date TEXT,
+    next_maintenance_date TEXT,
+    requires_periodic_testing BOOLEAN DEFAULT FALSE,
+    testing_period_days INTEGER DEFAULT 15,
+    last_testing_date TEXT,
+    next_testing_date TEXT,
     created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
 );
 
@@ -91,19 +100,40 @@ CREATE TABLE IF NOT EXISTS public.maintenances (
     tool_id TEXT,
     tool_code TEXT,
     tool_name TEXT,
-    type TEXT DEFAULT 'preventivo', -- 'preventivo', 'correctivo'
+    type TEXT DEFAULT 'preventivo', -- 'preventivo', 'correctivo', 'prueba'
     status TEXT DEFAULT 'programado', -- 'programado', 'en_proceso', 'completado', 'cancelado'
+    priority TEXT DEFAULT 'media', -- 'urgente', 'alta', 'media', 'baja'
     scheduled_date TEXT,
     completed_date TEXT,
     provider TEXT,
     responsible TEXT,
     cost NUMERIC DEFAULT 0,
+    estimated_cost NUMERIC DEFAULT 0,
     description TEXT,
+    failure_description TEXT,
+    work_to_do TEXT,
     work_done TEXT,
     parts_replaced TEXT,
     next_maintenance_date TEXT,
+    testing_result TEXT, -- 'satisfactorio', 'fallido'
     created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
 );
+
+-- Migraciones automáticas para tablas ya creadas previamente
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS requires_periodic_maintenance BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS maintenance_period_days INTEGER DEFAULT 90;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS last_maintenance_date TEXT;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS next_maintenance_date TEXT;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS requires_periodic_testing BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS testing_period_days INTEGER DEFAULT 15;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS last_testing_date TEXT;
+ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS next_testing_date TEXT;
+
+ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'media';
+ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS estimated_cost NUMERIC DEFAULT 0;
+ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS failure_description TEXT;
+ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS work_to_do TEXT;
+ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS testing_result TEXT;
 
 -- ==============================================================================
 -- POLÍTICAS DE SEGURIDAD (ROW LEVEL SECURITY - RLS)
