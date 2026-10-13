@@ -1,14 +1,9 @@
 /**
  * ToolMaster Pro - Configuración de Conexión a Supabase
- * 
- * Puedes ingresar tus credenciales directamente aquí para tu despliegue en Vercel,
- * o puedes ingresarlas desde la interfaz de la aplicación pulsando el botón "Configurar Nube".
+ * Conexión centralizada y sincronización en tiempo real.
  */
 
 window.SUPABASE_CONFIG = {
-  // Pega aquí la URL de tu proyecto Supabase (ej: https://xyzcompany.supabase.co)
-  url: '',
-
-  // Pega aquí la clave pública anónima (anon public key)
-  anonKey: ''
+  url: 'https://mwxjdubdboavfoxoxike.supabase.co',
+  anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im13eGpkdWJkYm9hdmZveG94aWtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4MzA1MzAsImV4cCI6MjEwNDQwNjUzMH0.a32p3PZcKw4ZCIntaGmYH-YdVdBP3qH2F3c-We4ywTw'
 };

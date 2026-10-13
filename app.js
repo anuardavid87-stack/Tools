@@ -720,151 +720,174 @@ const app = createApp({
       errorMessage: ''
     });
 
-    // Mapeo bidireccional JS <-> PostgreSQL (camelCase <-> snake_case)
-    const toSupabaseTool = (t) => ({
-      id: t.id,
-      code: t.code,
-      name: t.name,
-      category: t.category || '',
-      brand: t.brand || '',
-      model: t.model || '',
-      serial_number: t.serialNumber || '',
-      status: t.status || 'disponible',
-      location: t.location || '',
-      acquisition_date: t.acquisitionDate || '',
-      cost: Number(t.cost) || 0,
-      notes: t.notes || '',
-      requires_periodic_maintenance: t.requiresPeriodicMaintenance === true,
-      maintenance_period: t.maintenancePeriod || 'trimestral',
-      maintenance_period_days: Number(t.maintenancePeriodDays) || 0,
-      last_maintenance_date: t.lastMaintenanceDate || '',
-      next_maintenance_date: t.nextMaintenanceDate || '',
-      requires_periodic_testing: t.requiresPeriodicTesting === true,
-      testing_period: t.testingPeriod || '15_dias',
-      testing_period_days: Number(t.testingPeriodDays) || 0,
-      last_testing_date: t.lastTestingDate || '',
-      next_testing_date: t.nextTestingDate || '',
-      created_at: Number(t.createdAt) || Date.now()
-    });
+    // Mapeo bidireccional JS <-> PostgreSQL (camelCase de la base de datos Supabase)
+    const toSupabaseTool = (t) => {
+      const meta = {
+        requiresPeriodicMaintenance: t.requiresPeriodicMaintenance === true,
+        maintenancePeriod: t.maintenancePeriod || 'trimestral',
+        maintenancePeriodDays: Number(t.maintenancePeriodDays) || 0,
+        lastMaintenanceDate: t.lastMaintenanceDate || '',
+        nextMaintenanceDate: t.nextMaintenanceDate || '',
+        requiresPeriodicTesting: t.requiresPeriodicTesting === true,
+        testingPeriod: t.testingPeriod || '15_dias',
+        testingPeriodDays: Number(t.testingPeriodDays) || 0,
+        lastTestingDate: t.lastTestingDate || '',
+        nextTestingDate: t.nextTestingDate || ''
+      };
+      let cleanNotes = (t.notes || '').replace(/<!--METADATA:[\s\S]*?-->/g, '').trim();
+      let notesWithMeta = cleanNotes ? (cleanNotes + '\n<!--METADATA:' + JSON.stringify(meta) + '-->') : ('<!--METADATA:' + JSON.stringify(meta) + '-->');
 
-    const fromSupabaseTool = (r) => ({
-      id: r.id,
-      code: r.code,
-      name: r.name,
-      category: r.category || '',
-      brand: r.brand || '',
-      model: r.model || '',
-      serialNumber: r.serial_number || '',
-      status: r.status || 'disponible',
-      location: r.location || '',
-      acquisitionDate: r.acquisition_date || '',
-      cost: Number(r.cost) || 0,
-      notes: r.notes || '',
-      requiresPeriodicMaintenance: r.requires_periodic_maintenance === true,
-      maintenancePeriod: r.maintenance_period || 'trimestral',
-      maintenancePeriodDays: Number(r.maintenance_period_days) || 0,
-      lastMaintenanceDate: r.last_maintenance_date || '',
-      nextMaintenanceDate: r.next_maintenance_date || '',
-      requiresPeriodicTesting: r.requires_periodic_testing === true,
-      testingPeriod: r.testing_period || '15_dias',
-      testingPeriodDays: Number(r.testing_period_days) || 0,
-      lastTestingDate: r.last_testing_date || '',
-      nextTestingDate: r.next_testing_date || '',
-      createdAt: Number(r.created_at) || Date.now()
-    });
+      return {
+        id: t.id,
+        code: t.code,
+        name: t.name,
+        category: t.category || '',
+        brand: t.brand || '',
+        model: t.model || '',
+        serialNumber: t.serialNumber || '',
+        status: t.status || 'disponible',
+        location: t.location || '',
+        acquisitionDate: t.acquisitionDate || '',
+        cost: Number(t.cost) || 0,
+        notes: notesWithMeta,
+        createdAt: Number(t.createdAt) || Date.now()
+      };
+    };
+
+    const fromSupabaseTool = (r) => {
+      let meta = {};
+      let cleanNotes = r.notes || '';
+      const match = cleanNotes.match(/<!--METADATA:([\s\S]*?)-->/);
+      if (match) {
+        try {
+          meta = JSON.parse(match[1]);
+        } catch (e) {}
+        cleanNotes = cleanNotes.replace(/<!--METADATA:[\s\S]*?-->/g, '').trim();
+      }
+      return {
+        id: r.id,
+        code: r.code,
+        name: r.name,
+        category: r.category || '',
+        brand: r.brand || '',
+        model: r.model || '',
+        serialNumber: r.serialNumber || r.serial_number || '',
+        status: r.status || 'disponible',
+        location: r.location || '',
+        acquisitionDate: r.acquisitionDate || r.acquisition_date || '',
+        cost: Number(r.cost) || 0,
+        notes: cleanNotes,
+        requiresPeriodicMaintenance: meta.requiresPeriodicMaintenance ?? (r.requires_periodic_maintenance === true || r.requiresPeriodicMaintenance === true),
+        maintenancePeriod: meta.maintenancePeriod || r.maintenance_period || r.maintenancePeriod || 'trimestral',
+        maintenancePeriodDays: Number(meta.maintenancePeriodDays || r.maintenance_period_days || r.maintenancePeriodDays) || 0,
+        lastMaintenanceDate: meta.lastMaintenanceDate || r.last_maintenance_date || r.lastMaintenanceDate || '',
+        nextMaintenanceDate: meta.nextMaintenanceDate || r.next_maintenance_date || r.nextMaintenanceDate || '',
+        requiresPeriodicTesting: meta.requiresPeriodicTesting ?? (r.requires_periodic_testing === true || r.requiresPeriodicTesting === true),
+        testingPeriod: meta.testingPeriod || r.testing_period || r.testingPeriod || '15_dias',
+        testingPeriodDays: Number(meta.testingPeriodDays || r.testing_period_days || r.testingPeriodDays) || 0,
+        lastTestingDate: meta.lastTestingDate || r.last_testing_date || r.lastTestingDate || '',
+        nextTestingDate: meta.nextTestingDate || r.next_testing_date || r.nextTestingDate || '',
+        createdAt: Number(r.createdAt || r.created_at) || Date.now()
+      };
+    };
 
     const toSupabaseLoan = (l) => ({
       id: l.id,
-      voucher_number: l.voucherNumber,
-      technician_id: l.technicianId || null,
-      technician_name: l.technicianName,
-      technician_dni: l.technicianDni || '',
-      tool_ids: l.toolIds || [],
-      tool_snapshot: l.toolSnapshot || [],
-      loan_date: l.loanDate,
-      expected_return_date: l.expectedReturnDate,
-      actual_return_date: l.actualReturnDate || null,
+      voucherNumber: l.voucherNumber,
+      technicianId: l.technicianId || null,
+      technicianName: l.technicianName,
+      technicianDni: l.technicianDni || '',
+      toolIds: l.toolIds || [],
+      toolSnapshot: l.toolSnapshot || [],
+      loanDate: l.loanDate,
+      expectedReturnDate: l.expectedReturnDate,
+      actualReturnDate: l.actualReturnDate || null,
       status: l.status || 'activo',
       project: l.project || '',
-      delivery_condition: l.deliveryCondition || 'Excelente',
-      return_condition: l.returnCondition || null,
-      delivery_notes: l.deliveryNotes || '',
-      return_notes: l.returnNotes || '',
+      deliveryCondition: l.deliveryCondition || 'Excelente',
+      returnCondition: l.returnCondition || null,
+      deliveryNotes: l.deliveryNotes || '',
+      returnNotes: l.returnNotes || '',
       dispatcher: l.dispatcher || '',
       receiver: l.receiver || '',
-      created_at: Number(l.createdAt) || Date.now()
+      createdAt: Number(l.createdAt) || Date.now()
     });
 
     const fromSupabaseLoan = (r) => ({
       id: r.id,
-      voucherNumber: r.voucher_number,
-      technicianId: r.technician_id,
-      technicianName: r.technician_name,
-      technicianDni: r.technician_dni || '',
-      toolIds: r.tool_ids || [],
-      toolSnapshot: r.tool_snapshot || [],
-      loanDate: r.loan_date,
-      expectedReturnDate: r.expected_return_date,
-      actualReturnDate: r.actual_return_date,
+      voucherNumber: r.voucherNumber || r.voucher_number,
+      technicianId: r.technicianId || r.technician_id,
+      technicianName: r.technicianName || r.technician_name,
+      technicianDni: r.technicianDni || r.technician_dni || '',
+      toolIds: r.toolIds || r.tool_ids || [],
+      toolSnapshot: r.toolSnapshot || r.tool_snapshot || [],
+      loanDate: r.loanDate || r.loan_date,
+      expectedReturnDate: r.expectedReturnDate || r.expected_return_date,
+      actualReturnDate: r.actualReturnDate !== undefined ? r.actualReturnDate : r.actual_return_date,
       status: r.status || 'activo',
       project: r.project || '',
-      deliveryCondition: r.delivery_condition || 'Excelente',
-      returnCondition: r.return_condition,
-      deliveryNotes: r.delivery_notes || '',
-      returnNotes: r.return_notes || '',
+      deliveryCondition: r.deliveryCondition || r.delivery_condition || 'Excelente',
+      returnCondition: r.returnCondition !== undefined ? r.returnCondition : r.return_condition,
+      deliveryNotes: r.deliveryNotes || r.delivery_notes || '',
+      returnNotes: r.returnNotes || r.return_notes || '',
       dispatcher: r.dispatcher || '',
       receiver: r.receiver || '',
-      createdAt: Number(r.created_at) || Date.now()
+      createdAt: Number(r.createdAt || r.created_at) || Date.now()
     });
 
-    const toSupabaseMaint = (m) => ({
-      id: m.id,
-      code: m.code,
-      tool_id: m.toolId || null,
-      tool_code: m.toolCode,
-      tool_name: m.toolName,
-      type: m.type || 'preventivo',
-      status: m.status || 'programado',
-      priority: m.priority || 'media',
-      scheduled_date: m.scheduledDate,
-      completed_date: m.completedDate || null,
-      provider: m.provider || '',
-      responsible: m.responsible || '',
-      cost: Number(m.cost) || 0,
-      estimated_cost: Number(m.estimatedCost) || 0,
-      description: m.description || '',
-      failure_description: m.failureDescription || '',
-      work_to_do: m.workToDo || '',
-      work_done: m.workDone || '',
-      parts_replaced: m.partsReplaced || '',
-      next_maintenance_date: m.nextMaintenanceDate || '',
-      testing_result: m.testingResult || '',
-      created_at: Number(m.createdAt) || Date.now()
-    });
+    const toSupabaseMaint = (m) => {
+      let desc = m.description || '';
+      if (m.failureDescription && !desc.includes(m.failureDescription)) {
+        desc = (desc ? desc + '\n' : '') + 'Falla: ' + m.failureDescription;
+      }
+      let work = m.workDone || '';
+      if (m.testingResult && !work.includes(m.testingResult)) {
+        work = (work ? work + '\n' : '') + 'Resultado: ' + m.testingResult;
+      }
+      return {
+        id: m.id,
+        code: m.code,
+        toolId: m.toolId || null,
+        toolCode: m.toolCode,
+        toolName: m.toolName,
+        type: m.type || 'preventivo',
+        status: m.status || 'programado',
+        scheduledDate: m.scheduledDate,
+        completedDate: m.completedDate || null,
+        provider: m.provider || '',
+        responsible: m.responsible || '',
+        cost: Number(m.cost) || 0,
+        description: desc,
+        workDone: work,
+        partsReplaced: m.partsReplaced || '',
+        nextMaintenanceDate: m.nextMaintenanceDate || '',
+        createdAt: Number(m.createdAt) || Date.now()
+      };
+    };
 
     const fromSupabaseMaint = (r) => ({
       id: r.id,
       code: r.code,
-      toolId: r.tool_id,
-      toolCode: r.tool_code,
-      toolName: r.tool_name,
+      toolId: r.toolId || r.tool_id,
+      toolCode: r.toolCode || r.tool_code,
+      toolName: r.toolName || r.tool_name,
       type: r.type || 'preventivo',
       status: r.status || 'programado',
-      priority: r.priority || 'media',
-      scheduledDate: r.scheduled_date,
-      completedDate: r.completed_date,
+      priority: r.priority || (r.type === 'correctivo' ? 'alta' : 'media'),
+      scheduledDate: r.scheduledDate || r.scheduled_date,
+      completedDate: r.completedDate !== undefined ? r.completedDate : r.completed_date,
       provider: r.provider || '',
       responsible: r.responsible || '',
       cost: Number(r.cost) || 0,
-      estimatedCost: Number(r.estimated_cost) || 0,
+      estimatedCost: Number(r.estimatedCost || r.estimated_cost) || Number(r.cost) || 0,
       description: r.description || '',
-      failureDescription: r.failure_description || '',
-      workToDo: r.work_to_do || '',
-      workDone: r.work_done || '',
-      partsReplaced: r.parts_replaced || '',
-      nextMaintenanceDate: r.next_maintenance_date || '',
-      testingResult: r.testing_result || '',
-      createdAt: Number(r.created_at) || Date.now()
+      failureDescription: r.failureDescription || r.failure_description || (r.type === 'correctivo' ? r.description : ''),
+      workToDo: r.workToDo || r.work_to_do || (r.type === 'correctivo' ? r.description : ''),
+      workDone: r.workDone || r.work_done || '',
+      partsReplaced: r.partsReplaced || r.parts_replaced || '',
+      nextMaintenanceDate: r.nextMaintenanceDate || r.next_maintenance_date || '',
+      testingResult: r.testingResult || r.testing_result || '',
+      createdAt: Number(r.createdAt || r.created_at) || Date.now()
     });
 
     const toSupabaseTech = (t) => ({
@@ -875,7 +898,7 @@ const app = createApp({
       email: t.email || '',
       role: t.role || '',
       active: t.active !== false,
-      created_at: t.createdAt || new Date().toISOString().split('T')[0]
+      createdAt: t.createdAt || new Date().toISOString().split('T')[0]
     });
 
     const fromSupabaseTech = (r) => ({
@@ -886,7 +909,7 @@ const app = createApp({
       email: r.email || '',
       role: r.role || '',
       active: r.active !== false,
-      createdAt: r.created_at
+      createdAt: r.createdAt || r.created_at
     });
 
     const toSupabaseUser = (u) => ({
@@ -894,10 +917,10 @@ const app = createApp({
       username: u.username,
       name: u.name,
       email: u.email || '',
-      password_hash: u.passwordHash,
+      passwordHash: u.passwordHash,
       role: u.role || 'almacen',
       active: u.active !== false,
-      created_at: u.createdAt || new Date().toISOString().split('T')[0]
+      createdAt: u.createdAt || new Date().toISOString().split('T')[0]
     });
 
     const fromSupabaseUser = (r) => ({
@@ -905,10 +928,10 @@ const app = createApp({
       username: r.username,
       name: r.name,
       email: r.email || '',
-      passwordHash: r.password_hash,
+      passwordHash: r.passwordHash || r.password_hash,
       role: r.role || 'almacen',
       active: r.active !== false,
-      createdAt: r.created_at
+      createdAt: r.createdAt || r.created_at
     });
 
     const toSupabaseCompany = (c) => ({
@@ -918,8 +941,7 @@ const app = createApp({
       warehouse: c.warehouse || '',
       address: c.address || '',
       phone: c.phone || '',
-      manager: c.manager || '',
-      updated_at: new Date().toISOString()
+      manager: c.manager || ''
     });
 
     const fromSupabaseCompany = (r) => ({
@@ -1050,32 +1072,36 @@ const app = createApp({
         const [compRes, usrRes, toolRes, techRes, loanRes, maintRes] = await Promise.all([
           supabaseClient.value.from('company').select('*').limit(1),
           supabaseClient.value.from('users').select('*'),
-          supabaseClient.value.from('tools').select('*').order('created_at', { ascending: false }),
-          supabaseClient.value.from('technicians').select('*').order('name', { ascending: true }),
-          supabaseClient.value.from('loans').select('*').order('created_at', { ascending: false }),
-          supabaseClient.value.from('maintenances').select('*').order('created_at', { ascending: false })
+          supabaseClient.value.from('tools').select('*'),
+          supabaseClient.value.from('technicians').select('*'),
+          supabaseClient.value.from('loans').select('*'),
+          supabaseClient.value.from('maintenances').select('*')
         ]);
 
         if (toolRes.data && toolRes.data.length > 0) {
-          tools.value = toolRes.data.map(fromSupabaseTool);
+          tools.value = toolRes.data.map(fromSupabaseTool).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
         if (techRes.data && techRes.data.length > 0) {
-          technicians.value = techRes.data.map(fromSupabaseTech);
+          technicians.value = techRes.data.map(fromSupabaseTech).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         }
         if (loanRes.data && loanRes.data.length > 0) {
-          loans.value = loanRes.data.map(fromSupabaseLoan);
+          loans.value = loanRes.data.map(fromSupabaseLoan).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
         if (maintRes.data && maintRes.data.length > 0) {
-          maintenances.value = maintRes.data.map(fromSupabaseMaint);
+          maintenances.value = maintRes.data.map(fromSupabaseMaint).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
         if (usrRes.data && usrRes.data.length > 0) {
           users.value = usrRes.data.map(fromSupabaseUser);
+          if (!currentUser.value) {
+            checkSavedSession();
+          }
         }
         if (compRes.data && compRes.data.length > 0) {
           Object.assign(company, fromSupabaseCompany(compRes.data[0]));
         }
 
         saveToStorage();
+        console.log(`[Supabase Sync] Sincronizados con éxito: ${tools.value.length} equipos, ${loans.value.length} préstamos, ${technicians.value.length} técnicos.`);
       } catch (err) {
         console.error('Error descargando datos de Supabase:', err);
       } finally {
@@ -2292,6 +2318,7 @@ const app = createApp({
 
       maintenances.value.unshift(maintRecord);
       showPerformMaintenanceModal.value = false;
+      saveToStorage();
       notify(`Mantenimiento registrado y guardado en Hoja de Vida de ${tool.code}. Próximo: ${nextDate}`, 'success');
 
       if (supabaseConnected.value && supabaseClient.value) {
@@ -2393,6 +2420,7 @@ const app = createApp({
 
       maintenances.value.unshift(testRecord);
       showPerformHeatingModal.value = false;
+      saveToStorage();
 
       if (isSuccess) {
         notify(`Prueba de calentamiento registrada y guardada en Hoja de Vida de ${tool.code}. Próxima prueba: ${nextDate}`, 'success');
@@ -2420,6 +2448,7 @@ const app = createApp({
         if (index !== -1) {
           tools.value[index] = { ...toolForm };
           notify(`Herramienta ${toolForm.code} actualizada correctamente`);
+          saveToStorage();
           if (supabaseConnected.value && supabaseClient.value) {
             supabaseClient.value.from('tools').upsert([toSupabaseTool(tools.value[index])]).then(({ error }) => {
               if (error) console.error('Supabase saveTool error:', error);
@@ -2427,9 +2456,14 @@ const app = createApp({
           }
         }
       } else {
-        const newTool = { ...toolForm, createdAt: Date.now() };
+        const newTool = {
+          ...toolForm,
+          id: toolForm.id || ('tool_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)),
+          createdAt: Date.now()
+        };
         tools.value.unshift(newTool);
         notify(`Equipo ${toolForm.code} registrado con éxito`);
+        saveToStorage();
         if (supabaseConnected.value && supabaseClient.value) {
           supabaseClient.value.from('tools').upsert([toSupabaseTool(newTool)]).then(({ error }) => {
             if (error) console.error('Supabase saveTool error:', error);
@@ -2561,6 +2595,7 @@ const app = createApp({
 
       loans.value.unshift(newLoan);
       showLoanModal.value = false;
+      saveToStorage();
       notify(`Préstamo registrado exitosamente con Vale ${voucherNum}`);
       openPrintVoucher(newLoan);
 
@@ -2648,6 +2683,7 @@ const app = createApp({
       });
 
       showReturnModal.value = false;
+      saveToStorage();
       notify(`Devolución de ${loan.voucherNumber} registrada con éxito`);
 
       if (supabaseConnected.value && supabaseClient.value) {
@@ -2744,6 +2780,7 @@ const app = createApp({
       }
 
       showMaintenanceModal.value = false;
+      saveToStorage();
       notify(`Mantenimiento ${record.code} guardado`);
 
       if (supabaseConnected.value && supabaseClient.value) {
@@ -2845,6 +2882,7 @@ const app = createApp({
       }
 
       showCorrectiveModal.value = false;
+      saveToStorage();
       notify(`Avería registrada: Orden ${record.code} para ${tool.code} (Costo est. $${(record.estimatedCost || 0).toLocaleString()})`, 'success');
 
       if (supabaseConnected.value && supabaseClient.value) {
@@ -2922,6 +2960,7 @@ const app = createApp({
 
       maintenances.value.unshift(testRecord);
       showTestModal.value = false;
+      saveToStorage();
 
       if (testForm.result === 'fallido') {
         tool.status = 'mantenimiento';
@@ -3000,6 +3039,7 @@ const app = createApp({
       }
 
       showCompleteMaintModal.value = false;
+      saveToStorage();
       notify(`Mantenimiento ${m.code} finalizado y equipo liberado`);
 
       if (supabaseConnected.value && supabaseClient.value) {
@@ -3065,6 +3105,7 @@ const app = createApp({
         if (idx !== -1) {
           technicians.value[idx] = { ...techForm };
           notify(`Técnico ${techForm.name} actualizado`);
+          saveToStorage();
           if (supabaseConnected.value && supabaseClient.value) {
             supabaseClient.value.from('technicians').upsert([toSupabaseTech(technicians.value[idx])]).then(({ error }) => {
               if (error) console.error('Supabase saveTechnician error:', error);
@@ -3072,9 +3113,14 @@ const app = createApp({
           }
         }
       } else {
-        const newTech = { ...techForm, createdAt: new Date().toISOString().split('T')[0] };
+        const newTech = {
+          ...techForm,
+          id: techForm.id || ('tech_' + Date.now()),
+          createdAt: new Date().toISOString().split('T')[0]
+        };
         technicians.value.push(newTech);
         notify(`Técnico ${techForm.name} registrado con éxito`);
+        saveToStorage();
         if (supabaseConnected.value && supabaseClient.value) {
           supabaseClient.value.from('technicians').upsert([toSupabaseTech(newTech)]).then(({ error }) => {
             if (error) console.error('Supabase saveTechnician error:', error);
