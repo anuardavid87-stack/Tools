@@ -1,13 +1,13 @@
-﻿{
-  "name": "ToolMaster Pro - Control de Herramientas y Maquinaria",
-  "short_name": "ToolMaster Pro",
+{
+  "name": "TOOLPRO - Control de Herramientas y Mantenimiento",
+  "short_name": "TOOLPRO",
   "description": "Sistema de gestión integral de herramientas, maquinaria, préstamos a técnicos con vales imprimibles y control de mantenimientos.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ecfdf5",
-  "theme_color": "#16a34a",
+  "background_color": "#0f172a",
+  "theme_color": "#f2a900",
   "lang": "es",
   "categories": ["business", "productivity", "utilities"],
   "icons": [

@@ -3270,7 +3270,7 @@ const app = createApp({
       const sample2 = 'GEN-102;Generador Portátil a Gasolina 3500W;Generadores y Motores;Honda;EU30is;HN-99412;Bodega de Maquinaria Norte;1450;2025-02-15;Mantenimiento de aceite cada 100 horas';
       const sample3 = 'NIV-103;Nivel Óptico de Precisión 32X con Trípode;Medición y Precisión;Leica;NA332;LC-77215;Armario de Instrumentos;420;2025-06-01;Incluye mira telescópica de 5 metros';
       const content = `${headers}\n${sample1}\n${sample2}\n${sample3}\n`;
-      downloadCSV(content, 'Plantilla_Equipos_ToolMaster.csv');
+      downloadCSV(content, 'Plantilla_Equipos_TOOLPRO.csv');
       notify('Plantilla oficial de equipos descargada (Compatible con Excel)');
     };
 
@@ -3284,7 +3284,7 @@ const app = createApp({
       const sample2 = 'CC-71283940;Mauricio Cardona Zapata;315-444-9876;mauricio.cardona@empresa.com;Mecánico de Maquinaria Pesada';
       const sample3 = 'CC-10234567;Valeria Monsalve Soto;320-333-4567;valeria.monsalve@empresa.com;Supervisora de Mantenimiento';
       const content = `${headers}\n${sample1}\n${sample2}\n${sample3}\n`;
-      downloadCSV(content, 'Plantilla_Tecnicos_ToolMaster.csv');
+      downloadCSV(content, 'Plantilla_Tecnicos_TOOLPRO.csv');
       notify('Plantilla oficial de técnicos descargada (Compatible con Excel)');
     };
 
@@ -3748,8 +3748,8 @@ const app = createApp({
         return;
       }
       const data = {
-        app: 'ToolMaster Pro',
-        version: '1.1',
+        app: 'TOOLPRO',
+        version: '1.2',
         exportedAt: new Date().toISOString(),
         company,
         users: users.value,
@@ -3762,7 +3762,7 @@ const app = createApp({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `ToolMaster_Respaldo_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `TOOLPRO_Respaldo_${new Date().toISOString().split('T')[0]}.json`;
       a.click();
       URL.revokeObjectURL(a);
       notify('Copia de seguridad descargada en formato JSON');
@@ -3911,7 +3911,7 @@ const app = createApp({
         deferredPrompt.value.prompt();
         const { outcome } = await deferredPrompt.value.userChoice;
         if (outcome === 'accepted') {
-          notify('¡Instalando ToolMaster Pro en tu dispositivo!', 'success');
+          notify('¡Instalando TOOLPRO en tu dispositivo!', 'success');
           canInstallPwa.value = false;
         }
         deferredPrompt.value = null;
@@ -3943,7 +3943,7 @@ const app = createApp({
       window.addEventListener('appinstalled', () => {
         canInstallPwa.value = false;
         deferredPrompt.value = null;
-        notify('¡ToolMaster Pro ha sido instalada exitosamente en tu dispositivo!', 'success');
+        notify('¡TOOLPRO ha sido instalada exitosamente en tu dispositivo!', 'success');
         console.log('[PWA] App instalada con éxito');
       });
     };

@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ToolMaster Pro - Control de Herramientas, Maquinaria y Mantenimientos</title>
+  <title>TOOLPRO - Control de Herramientas, Maquinaria y Mantenimientos</title>
   
   <!-- Metadatos y Manifiesto PWA (Progressive Web App) -->
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#16a34a">
+  <meta name="theme-color" content="#f2a900">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ToolMaster Pro">
+  <meta name="apple-mobile-web-app-title" content="TOOLPRO">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png">
@@ -74,10 +74,8 @@
         
         <!-- Logo y Título -->
         <div class="text-center space-y-2">
-          <div class="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 items-center justify-center shadow-lg shadow-emerald-900/30 text-white font-black text-2xl tracking-wider mb-2">
-            TM
-          </div>
-          <h1 class="text-2xl font-black text-white tracking-tight">ToolMaster <span class="text-emerald-400">Pro</span></h1>
+          <img src="icons/icon.svg" alt="TOOLPRO" class="inline-block w-16 h-16 rounded-2xl shadow-xl shadow-amber-500/20 mb-1 hover:scale-105 transition-transform">
+          <h1 class="text-2xl font-black text-white tracking-tight">TOOL<span class="text-amber-400">PRO</span></h1>
           <p class="text-xs text-slate-400">Sistema de Control de Herramientas, Maquinaria y Mantenimientos</p>
         </div>
 
@@ -220,25 +218,22 @@
           <div class="flex items-center justify-between h-16">
             
             <!-- Logo y Marca -->
-            <div class="flex items-center gap-3 cursor-pointer" @click="activeTab = 'dashboard'">
-              <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-md shadow-emerald-900/30 text-white font-black text-xl tracking-wider">
-                TM
-              </div>
+            <div class="flex items-center gap-2.5 cursor-pointer shrink-0" @click="activeTab = 'dashboard'">
+              <img src="icons/icon.svg" alt="TOOLPRO" class="w-9 h-9 rounded-xl shadow-md shrink-0 hover:scale-105 transition-transform">
               <div>
-                <div class="flex items-center gap-2">
-                  <span class="font-bold text-lg text-white tracking-tight">ToolMaster <span class="text-emerald-400">Pro</span></span>
-                  <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold border border-emerald-500/30 uppercase tracking-widest">Industrial</span>
+                <div class="flex items-center">
+                  <span class="font-black text-lg text-white tracking-tight leading-none">TOOL<span class="text-amber-400">PRO</span></span>
                 </div>
-                <p class="text-xs text-slate-400 hidden sm:block truncate max-w-xs">{{ company.name }}</p>
+                <p class="text-[10px] text-slate-400 hidden xl:block truncate max-w-[130px] mt-0.5">{{ company.name }}</p>
               </div>
             </div>
 
             <!-- Pestañas Principales (Desktop) -->
-            <nav class="hidden md:flex items-center gap-1 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
+            <nav class="hidden md:flex items-center gap-0.5 bg-slate-950/60 p-1 rounded-xl border border-slate-800">
               <button 
                 @click="activeTab = 'dashboard'"
                 :class="activeTab === 'dashboard' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.dashboard"></span>
                 <span>Dashboard</span>
               </button>
@@ -246,21 +241,21 @@
               <button 
                 @click="activeTab = 'tools'"
                 :class="activeTab === 'tools' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.tool"></span>
                 <span>Equipos</span>
-                <span class="ml-0.5 text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded-full">{{ totalToolsCount }}</span>
+                <span class="ml-0.5 text-[10px] bg-slate-700 text-slate-300 px-1.5 py-0.2 rounded-full">{{ totalToolsCount }}</span>
               </button>
 
               <button 
                 @click="activeTab = 'loans'"
                 :class="activeTab === 'loans' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.loans"></span>
                 <span>Préstamos</span>
                 <span v-if="activeLoans.length > 0" 
                   :class="overdueLoans.length > 0 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse' : 'bg-amber-500/20 text-amber-400'"
-                  class="ml-0.5 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  class="ml-0.5 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
                   {{ activeLoans.length }}
                 </span>
               </button>
@@ -268,10 +263,10 @@
               <button 
                 @click="activeTab = 'maintenances'; maintSubTab = 'pendientes'"
                 :class="activeTab === 'maintenances' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.wrench"></span>
                 <span>Mantenimientos</span>
-                <span v-if="pendingMaintenanceAlertsCount > 0" class="ml-0.5 text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/40 px-1.5 py-0.5 rounded-full font-bold animate-pulse" title="Mantenimientos pendientes">
+                <span v-if="pendingMaintenanceAlertsCount > 0" class="ml-0.5 text-[10px] bg-rose-500/20 text-rose-400 border border-rose-500/40 px-1.5 py-0.2 rounded-full font-bold animate-pulse" title="Mantenimientos pendientes">
                   {{ pendingMaintenanceAlertsCount }}
                 </span>
               </button>
@@ -279,10 +274,10 @@
               <button 
                 @click="activeTab = 'calentamiento'; heatingSubTab = 'pendientes'"
                 :class="activeTab === 'calentamiento' ? 'bg-slate-800 text-amber-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.flame"></span>
                 <span>Calentamiento</span>
-                <span v-if="pendingHeatingAlertsCount > 0" class="ml-0.5 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-1.5 py-0.5 rounded-full font-bold animate-pulse" title="Pruebas de calentamiento pendientes">
+                <span v-if="pendingHeatingAlertsCount > 0" class="ml-0.5 text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/40 px-1.5 py-0.2 rounded-full font-bold animate-pulse" title="Pruebas de calentamiento pendientes">
                   {{ pendingHeatingAlertsCount }}
                 </span>
               </button>
@@ -290,7 +285,7 @@
               <button 
                 @click="activeTab = 'technicians'"
                 :class="activeTab === 'technicians' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.technicians"></span>
                 <span>Técnicos</span>
               </button>
@@ -300,78 +295,75 @@
                 v-if="isAdmin"
                 @click="activeTab = 'users'"
                 :class="activeTab === 'users' ? 'bg-slate-800 text-purple-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.users"></span>
                 <span>Usuarios</span>
-                <span class="ml-0.5 text-[10px] bg-purple-900/60 text-purple-300 px-1.5 py-0.5 rounded-full">{{ users.length }}</span>
+                <span class="ml-0.5 text-[10px] bg-purple-900/60 text-purple-300 px-1.5 py-0.2 rounded-full">{{ users.length }}</span>
               </button>
 
               <button 
                 @click="activeTab = 'reports'"
                 :class="activeTab === 'reports' ? 'bg-slate-800 text-emerald-400 shadow-sm' : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/50'"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all">
                 <span v-html="icons.reports"></span>
                 <span>Reportes</span>
               </button>
             </nav>
 
             <!-- Acceso Rápido & Perfil del Usuario Activo -->
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2">
               
               <!-- Botón Nueva Entrega (Deshabilitado en modo consulta) -->
               <button 
                 v-if="!isConsulta"
                 @click="openNewLoanModal()" 
-                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 shadow-md shadow-emerald-900/20 transition-colors">
+                class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 shadow-md shadow-emerald-900/20 transition-colors shrink-0">
                 <span v-html="icons.plus"></span>
-                <span class="hidden sm:inline">Nueva Entrega</span>
+                <span class="hidden sm:inline">Entrega</span>
               </button>
 
-              <!-- Botón Estado y Configuración Nube Supabase -->
+              <!-- Botón Estado y Configuración Nube Supabase (Solo Punto Indicador) -->
               <button 
                 @click="openSupabaseModal()" 
-                class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm cursor-pointer"
-                :class="supabaseConnected ? 'bg-emerald-950/80 text-emerald-300 border-emerald-500/60 hover:bg-emerald-900' : 'bg-slate-800 text-amber-300 border-amber-500/40 hover:bg-slate-700'"
-                :title="supabaseConnected ? 'Conectado a Supabase en Tiempo Real. Clic para administrar' : 'Modo Local Offline. Clic para conectar Supabase en la nube'">
-                <span v-if="supabaseConnected" class="flex h-2 w-2 relative">
+                class="w-8 h-8 rounded-xl border flex items-center justify-center transition-all shadow-sm cursor-pointer shrink-0"
+                :class="supabaseConnected ? 'bg-emerald-950/70 border-emerald-500/50 hover:bg-emerald-900' : 'bg-amber-950/70 border-amber-500/50 hover:bg-amber-900'"
+                :title="supabaseConnected ? '🟢 Base de Datos Supabase: Conectada en Tiempo Real (Clic para administrar)' : '🟡 Modo Local Offline. Clic para conectar Supabase'">
+                <span v-if="supabaseConnected" class="flex h-2.5 w-2.5 relative">
                   <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
                 </span>
-                <span v-else class="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span v-if="supabaseConnected" class="hidden sm:inline">🟢 En Vivo</span>
-                <span v-else class="hidden sm:inline">🟡 Conectar Nube</span>
+                <span v-else class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
               </button>
 
               <!-- Botón Instalar PWA en Dispositivo -->
               <button 
                 v-if="canInstallPwa"
                 @click="installPwa()" 
-                class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm bg-blue-950/80 text-blue-300 border-blue-500/50 hover:bg-blue-900 cursor-pointer animate-pulse"
-                title="Instalar ToolMaster Pro como aplicación en este dispositivo">
+                class="w-8 h-8 rounded-xl border text-xs font-semibold flex items-center justify-center transition-all shadow-sm bg-blue-950/80 text-blue-300 border-blue-500/50 hover:bg-blue-900 cursor-pointer animate-pulse shrink-0"
+                title="Instalar TOOLPRO como aplicación en este dispositivo">
                 <span v-html="icons.mobile"></span>
-                <span class="hidden sm:inline">Instalar App</span>
               </button>
 
               <!-- Conmutador de Fondo / Tema (Verde Claro / Oscuro) -->
               <button 
                 @click="toggleTheme()" 
-                class="px-2.5 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+                class="w-8 h-8 rounded-xl border text-xs font-semibold flex items-center justify-center transition-all shadow-sm shrink-0"
                 :class="currentTheme === 'verde-claro' ? 'bg-emerald-800 text-emerald-100 border-emerald-600 hover:bg-emerald-700' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'"
                 :title="currentTheme === 'verde-claro' ? 'Cambiar a Fondo Oscuro' : 'Cambiar a Fondo Verde Claro'">
-                <span v-if="currentTheme === 'verde-claro'">🌿 Verde Claro</span>
-                <span v-else>🌙 Oscuro</span>
+                <span v-if="currentTheme === 'verde-claro'">🌿</span>
+                <span v-else>🌙</span>
               </button>
 
               <!-- Cápsula de Usuario Activo y Logout -->
-              <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 pl-2.5 pr-1.5 py-1.5 rounded-xl">
-                <div class="text-right hidden sm:block">
-                  <div class="text-xs font-bold text-white leading-none">{{ currentUser.name }}</div>
-                  <span :class="getRoleBadge(currentUser.role)" class="text-[9px] font-mono uppercase px-1.5 py-0.2 rounded mt-0.5 inline-block">
+              <div class="flex items-center gap-1.5 bg-slate-950/80 border border-slate-800 pl-2 pr-1.5 py-1 rounded-xl shrink-0">
+                <div class="text-right hidden xl:block">
+                  <div class="text-xs font-bold text-white leading-none truncate max-w-[110px]">{{ currentUser.name }}</div>
+                  <span :class="getRoleBadge(currentUser.role)" class="text-[9px] font-mono uppercase px-1 py-0.2 rounded mt-0.5 inline-block">
                     {{ getRoleLabel(currentUser.role) }}
                   </span>
                 </div>
 
-                <div class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-xs text-white border border-slate-700">
+                <div class="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center font-bold text-xs text-white border border-slate-700">
                   {{ currentUser.name ? currentUser.name[0].toUpperCase() : 'U' }}
                 </div>
 
@@ -379,7 +371,7 @@
                 <button 
                   @click="logout()" 
                   title="Cerrar sesión"
-                  class="text-slate-400 hover:text-rose-400 hover:bg-slate-800 p-1.5 rounded-lg transition-colors ml-1">
+                  class="text-slate-400 hover:text-rose-400 hover:bg-slate-800 p-1 rounded-lg transition-colors">
                   <span v-html="icons.logout"></span>
                 </button>
               </div>
@@ -2251,7 +2243,7 @@
                   </div>
                   <div>
                     <h3 class="font-bold text-white text-base">Aplicación Web Progresiva (PWA Instalable)</h3>
-                    <p class="text-xs text-slate-400">Instala ToolMaster Pro directamente en teléfonos Android, iPhone, iPad, tablets y computadoras sin pasar por tiendas de aplicaciones.</p>
+                    <p class="text-xs text-slate-400">Instala TOOLPRO directamente en teléfonos Android, iPhone, iPad, tablets y computadoras sin pasar por tiendas de aplicaciones.</p>
                   </div>
                 </div>
                 <button 
@@ -4184,10 +4176,13 @@
     <div style="font-family: Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #000; max-width: 750px; margin: 0 auto; padding: 20px;">
       
       <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px;">
-        <div>
-          <h1 style="font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">{{ company.name }}</h1>
-          <p style="margin: 3px 0 0 0; font-size: 9.5pt; color: #333;">NIT: {{ company.nit }} | {{ company.warehouse }}</p>
-          <p style="margin: 2px 0 0 0; font-size: 9pt; color: #555;">{{ company.address }} - Tel: {{ company.phone }}</p>
+        <div style="display: flex; align-items: center; gap: 14px;">
+          <img src="icons/icon.svg" style="height: 48px; width: 48px; border-radius: 10px;" alt="TOOLPRO">
+          <div>
+            <h1 style="font-size: 14pt; font-weight: bold; margin: 0; text-transform: uppercase;">{{ company.name }}</h1>
+            <p style="margin: 3px 0 0 0; font-size: 9.5pt; color: #333;">NIT: {{ company.nit }} | {{ company.warehouse }}</p>
+            <p style="margin: 2px 0 0 0; font-size: 9pt; color: #555;">{{ company.address }} - Tel: {{ company.phone }}</p>
+          </div>
         </div>
         <div style="text-align: right;">
           <div style="border: 2px solid #000; padding: 6px 12px; font-weight: bold; font-size: 12pt;">

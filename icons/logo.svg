@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 90" width="380" height="90">
+  <!-- Icono Squircle Ambar -->
+  <g transform="translate(4, 5)">
+    <rect width="80" height="80" rx="20" fill="#F2A900"/>
+    
+    <!-- Caja de Herramientas -->
+    <g fill="#1F2328">
+      <!-- Asa -->
+      <path d="M 32 21 C 32 19, 34 17, 36 17 L 44 17 C 46 17, 48 19, 48 21 L 48 27 L 44 27 L 44 22 C 44 21.5, 43.5 21, 43 21 L 37 21 C 36.5 21, 36 21.5, 36 22 L 36 27 L 32 27 Z"/>
+      <!-- Tapa -->
+      <path d="M 18 30 C 18 28, 20 26.5, 22 26.5 L 58 26.5 C 60 26.5, 62 28, 62 30 L 62 37 L 18 37 Z"/>
+      <!-- Cuerpo -->
+      <path d="M 18 39 L 62 39 L 62 54 C 62 56.5, 60 58.5, 57.5 58.5 L 22.5 58.5 C 20 58.5, 18 56.5, 18 54 Z"/>
+      <!-- Broche -->
+      <rect x="37" y="34.5" width="6" height="7.5" rx="1.5" fill="#F2A900"/>
+    </g>
+  </g>
+  
+  <!-- Texto Oficial TOOLPRO -->
+  <text x="100" y="47" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="34" font-weight="900" fill="#FFFFFF" letter-spacing="0.5">TOOL<tspan fill="#F2A900">PRO</tspan></text>
+  <text x="101" y="68" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="12" font-weight="500" fill="#94A3B8" letter-spacing="0.2">Control de herramientas</text>
+</svg>
