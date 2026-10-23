@@ -549,6 +549,21 @@ const app = createApp({
       }, 4000);
     };
 
+    // Contexto Multi-Tenant y Seguridad
+    const currentCompanyId = ref('main');
+    const sessionToken = ref('');
+    const failedLoginAttempts = ref(0);
+    const loginLockoutUntil = ref(0);
+
+    // Sanitizador preventivo contra inyección / XSS
+    const sanitizeInput = (val) => {
+      if (val === null || val === undefined) return '';
+      if (typeof val !== 'string') return val;
+      return val
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .trim();
+    };
+
     // Datos principales
     const company = reactive({ ...SEED_DATA.company });
     const users = ref([]);
@@ -667,6 +682,7 @@ const app = createApp({
             testingResult: m.testingResult || '',
             ...m
           }));
+          if (parsed.currentCompanyId) currentCompanyId.value = parsed.currentCompanyId;
           if (parsed.company) Object.assign(company, parsed.company);
         } else {
           cargarDatosEjemplo(false);
@@ -683,6 +699,7 @@ const app = createApp({
     const saveToStorage = () => {
       try {
         const payload = {
+          currentCompanyId: currentCompanyId.value,
           company,
           users: users.value,
           tools: tools.value,
@@ -720,7 +737,7 @@ const app = createApp({
       errorMessage: ''
     });
 
-    // Mapeo bidireccional JS <-> PostgreSQL (camelCase de la base de datos Supabase)
+    // Mapeo bidireccional JS <-> PostgreSQL Multi-Tenant (Protección y Aislamiento por Empresa)
     const toSupabaseTool = (t) => {
       const meta = {
         requiresPeriodicMaintenance: t.requiresPeriodicMaintenance === true,
@@ -739,14 +756,15 @@ const app = createApp({
 
       return {
         id: t.id,
-        code: t.code,
-        name: t.name,
-        category: t.category || '',
-        brand: t.brand || '',
-        model: t.model || '',
-        serialNumber: t.serialNumber || '',
+        company_id: currentCompanyId.value || t.companyId || 'main',
+        code: sanitizeInput(t.code),
+        name: sanitizeInput(t.name),
+        category: sanitizeInput(t.category || ''),
+        brand: sanitizeInput(t.brand || ''),
+        model: sanitizeInput(t.model || ''),
+        serialNumber: sanitizeInput(t.serialNumber || ''),
         status: t.status || 'disponible',
-        location: t.location || '',
+        location: sanitizeInput(t.location || ''),
         acquisitionDate: t.acquisitionDate || '',
         cost: Number(t.cost) || 0,
         notes: notesWithMeta,
@@ -766,6 +784,7 @@ const app = createApp({
       }
       return {
         id: r.id,
+        companyId: r.company_id || r.companyId || 'main',
         code: r.code,
         name: r.name,
         category: r.category || '',
@@ -793,28 +812,30 @@ const app = createApp({
 
     const toSupabaseLoan = (l) => ({
       id: l.id,
+      company_id: currentCompanyId.value || l.companyId || 'main',
       voucherNumber: l.voucherNumber,
       technicianId: l.technicianId || null,
-      technicianName: l.technicianName,
-      technicianDni: l.technicianDni || '',
+      technicianName: sanitizeInput(l.technicianName),
+      technicianDni: sanitizeInput(l.technicianDni || ''),
       toolIds: l.toolIds || [],
       toolSnapshot: l.toolSnapshot || [],
       loanDate: l.loanDate,
       expectedReturnDate: l.expectedReturnDate,
       actualReturnDate: l.actualReturnDate || null,
       status: l.status || 'activo',
-      project: l.project || '',
+      project: sanitizeInput(l.project || ''),
       deliveryCondition: l.deliveryCondition || 'Excelente',
       returnCondition: l.returnCondition || null,
-      deliveryNotes: l.deliveryNotes || '',
-      returnNotes: l.returnNotes || '',
-      dispatcher: l.dispatcher || '',
-      receiver: l.receiver || '',
+      deliveryNotes: sanitizeInput(l.deliveryNotes || ''),
+      returnNotes: sanitizeInput(l.returnNotes || ''),
+      dispatcher: sanitizeInput(l.dispatcher || ''),
+      receiver: sanitizeInput(l.receiver || ''),
       createdAt: Number(l.createdAt) || Date.now()
     });
 
     const fromSupabaseLoan = (r) => ({
       id: r.id,
+      companyId: r.company_id || r.companyId || 'main',
       voucherNumber: r.voucherNumber || r.voucher_number,
       technicianId: r.technicianId || r.technician_id,
       technicianName: r.technicianName || r.technician_name,
@@ -846,6 +867,7 @@ const app = createApp({
       }
       return {
         id: m.id,
+        company_id: currentCompanyId.value || m.companyId || 'main',
         code: m.code,
         toolId: m.toolId || null,
         toolCode: m.toolCode,
@@ -854,12 +876,12 @@ const app = createApp({
         status: m.status || 'programado',
         scheduledDate: m.scheduledDate,
         completedDate: m.completedDate || null,
-        provider: m.provider || '',
-        responsible: m.responsible || '',
+        provider: sanitizeInput(m.provider || ''),
+        responsible: sanitizeInput(m.responsible || ''),
         cost: Number(m.cost) || 0,
-        description: desc,
-        workDone: work,
-        partsReplaced: m.partsReplaced || '',
+        description: sanitizeInput(desc),
+        workDone: sanitizeInput(work),
+        partsReplaced: sanitizeInput(m.partsReplaced || ''),
         nextMaintenanceDate: m.nextMaintenanceDate || '',
         createdAt: Number(m.createdAt) || Date.now()
       };
@@ -867,6 +889,7 @@ const app = createApp({
 
     const fromSupabaseMaint = (r) => ({
       id: r.id,
+      companyId: r.company_id || r.companyId || 'main',
       code: r.code,
       toolId: r.toolId || r.tool_id,
       toolCode: r.toolCode || r.tool_code,
@@ -892,17 +915,19 @@ const app = createApp({
 
     const toSupabaseTech = (t) => ({
       id: t.id,
-      dni: t.dni,
-      name: t.name,
-      phone: t.phone || '',
-      email: t.email || '',
-      role: t.role || '',
+      company_id: currentCompanyId.value || t.companyId || 'main',
+      dni: sanitizeInput(t.dni),
+      name: sanitizeInput(t.name),
+      phone: sanitizeInput(t.phone || ''),
+      email: sanitizeInput(t.email || ''),
+      role: sanitizeInput(t.role || ''),
       active: t.active !== false,
       createdAt: t.createdAt || new Date().toISOString().split('T')[0]
     });
 
     const fromSupabaseTech = (r) => ({
       id: r.id,
+      companyId: r.company_id || r.companyId || 'main',
       dni: r.dni,
       name: r.name,
       phone: r.phone || '',
@@ -912,39 +937,46 @@ const app = createApp({
       createdAt: r.createdAt || r.created_at
     });
 
-    const toSupabaseUser = (u) => ({
-      id: u.id,
-      username: u.username,
-      name: u.name,
-      email: u.email || '',
-      passwordHash: u.passwordHash,
-      role: u.role || 'almacen',
-      active: u.active !== false,
-      createdAt: u.createdAt || new Date().toISOString().split('T')[0]
-    });
+    const toSupabaseUser = (u) => {
+      const payload = {
+        id: u.id,
+        company_id: currentCompanyId.value || u.companyId || 'main',
+        username: sanitizeInput(u.username),
+        name: sanitizeInput(u.name),
+        email: sanitizeInput(u.email || ''),
+        role: u.role || 'almacen',
+        active: u.active !== false,
+        createdAt: u.createdAt || new Date().toISOString().split('T')[0]
+      };
+      if (u.passwordHash) {
+        payload.password_hash = u.passwordHash;
+      }
+      return payload;
+    };
 
     const fromSupabaseUser = (r) => ({
       id: r.id,
+      companyId: r.company_id || r.companyId || 'main',
       username: r.username,
       name: r.name,
       email: r.email || '',
-      passwordHash: r.passwordHash || r.password_hash,
       role: r.role || 'almacen',
       active: r.active !== false,
       createdAt: r.createdAt || r.created_at
     });
 
     const toSupabaseCompany = (c) => ({
-      id: 'main',
-      name: c.name || '',
-      nit: c.nit || '',
-      warehouse: c.warehouse || '',
-      address: c.address || '',
-      phone: c.phone || '',
-      manager: c.manager || ''
+      id: currentCompanyId.value || c.id || 'main',
+      name: sanitizeInput(c.name || ''),
+      nit: sanitizeInput(c.nit || ''),
+      warehouse: sanitizeInput(c.warehouse || ''),
+      address: sanitizeInput(c.address || ''),
+      phone: sanitizeInput(c.phone || ''),
+      manager: sanitizeInput(c.manager || '')
     });
 
     const fromSupabaseCompany = (r) => ({
+      id: r.id || 'main',
       name: r.name || '',
       nit: r.nit || '',
       warehouse: r.warehouse || '',
@@ -953,10 +985,36 @@ const app = createApp({
       manager: r.manager || ''
     });
 
-    // Manejador de eventos en tiempo real (WebSockets)
+    // Encabezados de Seguridad y Contexto Multi-Tenant para Supabase PostgREST
+    const applyClientHeaders = () => {
+      if (!supabaseClient.value) return;
+      try {
+        const headers = {};
+        if (sessionToken.value) {
+          headers['x-session-token'] = sessionToken.value;
+        }
+        if (currentCompanyId.value) {
+          headers['x-company-id'] = currentCompanyId.value;
+        }
+        if (supabaseClient.value.rest && supabaseClient.value.rest.headers) {
+          Object.assign(supabaseClient.value.rest.headers, headers);
+        }
+      } catch (e) {
+        console.warn('Error aplicando encabezados de seguridad multi-tenant:', e);
+      }
+    };
+
+    // Manejador de eventos en tiempo real (WebSockets) con Validación de Tenant
     const handleRealtimeChange = (tableName, payload) => {
       const { eventType, new: newRow, old: oldRow } = payload;
-      console.log(`[Supabase Realtime] ${tableName} -> ${eventType}:`, newRow || oldRow);
+      
+      // Escudo de Seguridad: Descartar eventos que no correspondan a la empresa activa
+      const eventCompanyId = (newRow && (newRow.company_id || newRow.companyId)) || (oldRow && (oldRow.company_id || oldRow.companyId));
+      if (eventCompanyId && eventCompanyId !== currentCompanyId.value) {
+        return;
+      }
+
+      console.log(`[Supabase Realtime Tenant Room] ${tableName} -> ${eventType}:`, newRow || oldRow);
 
       if (tableName === 'tools') {
         if (eventType === 'INSERT') {
@@ -1037,22 +1095,24 @@ const app = createApp({
       }
     };
 
-    // Configurar canales de suscripción en tiempo real
+    // Configurar canales de suscripción en tiempo real estrictamente particionados por Empresa
     const setupRealtimeSubscription = () => {
       if (!supabaseClient.value) return;
       try {
         supabaseClient.value.removeAllChannels();
 
+        const tenantFilter = `company_id=eq.${currentCompanyId.value}`;
+
         supabaseClient.value
-          .channel('toolmaster-live-room')
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'tools' }, (p) => handleRealtimeChange('tools', p))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'loans' }, (p) => handleRealtimeChange('loans', p))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenances' }, (p) => handleRealtimeChange('maintenances', p))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians' }, (p) => handleRealtimeChange('technicians', p))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, (p) => handleRealtimeChange('users', p))
-          .on('postgres_changes', { event: '*', schema: 'public', table: 'company' }, (p) => handleRealtimeChange('company', p))
+          .channel('toolpro-tenant-room-' + currentCompanyId.value)
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'tools', filter: tenantFilter }, (p) => handleRealtimeChange('tools', p))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'loans', filter: tenantFilter }, (p) => handleRealtimeChange('loans', p))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'maintenances', filter: tenantFilter }, (p) => handleRealtimeChange('maintenances', p))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'technicians', filter: tenantFilter }, (p) => handleRealtimeChange('technicians', p))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'users', filter: tenantFilter }, (p) => handleRealtimeChange('users', p))
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'company', filter: `id=eq.${currentCompanyId.value}` }, (p) => handleRealtimeChange('company', p))
           .subscribe((status) => {
-            console.log('[Supabase Realtime Channel Status]:', status);
+            console.log('[Supabase Realtime Tenant Room Status]:', status);
             if (status === 'SUBSCRIBED') {
               supabaseRealtimeActive.value = true;
             } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
@@ -1060,48 +1120,48 @@ const app = createApp({
             }
           });
       } catch (err) {
-        console.error('Error suscribiendo a Realtime:', err);
+        console.error('Error suscribiendo a Realtime tenant:', err);
       }
     };
 
-    // Descargar datos completos desde Supabase
+    // Descargar datos scoped al tenant autenticado (NUNCA descarga hashes de contraseñas)
     const fetchAllFromSupabase = async () => {
       if (!supabaseClient.value) return;
       try {
         isSyncingCloud.value = true;
+        applyClientHeaders();
+
         const [compRes, usrRes, toolRes, techRes, loanRes, maintRes] = await Promise.all([
-          supabaseClient.value.from('company').select('*').limit(1),
-          supabaseClient.value.from('users').select('*'),
-          supabaseClient.value.from('tools').select('*'),
-          supabaseClient.value.from('technicians').select('*'),
-          supabaseClient.value.from('loans').select('*'),
-          supabaseClient.value.from('maintenances').select('*')
+          supabaseClient.value.from('company').select('*').eq('id', currentCompanyId.value).limit(1),
+          supabaseClient.value.from('users').select('id, username, name, email, role, active, created_at, company_id').eq('company_id', currentCompanyId.value),
+          supabaseClient.value.from('tools').select('*').eq('company_id', currentCompanyId.value),
+          supabaseClient.value.from('technicians').select('*').eq('company_id', currentCompanyId.value),
+          supabaseClient.value.from('loans').select('*').eq('company_id', currentCompanyId.value),
+          supabaseClient.value.from('maintenances').select('*').eq('company_id', currentCompanyId.value)
         ]);
 
-        if (toolRes.data && toolRes.data.length > 0) {
+        if (toolRes.data) {
           tools.value = toolRes.data.map(fromSupabaseTool).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
-        if (techRes.data && techRes.data.length > 0) {
+        if (techRes.data) {
           technicians.value = techRes.data.map(fromSupabaseTech).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
         }
-        if (loanRes.data && loanRes.data.length > 0) {
+        if (loanRes.data) {
           loans.value = loanRes.data.map(fromSupabaseLoan).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
-        if (maintRes.data && maintRes.data.length > 0) {
+        if (maintRes.data) {
           maintenances.value = maintRes.data.map(fromSupabaseMaint).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         }
-        if (usrRes.data && usrRes.data.length > 0) {
+        if (usrRes.data) {
           users.value = usrRes.data.map(fromSupabaseUser);
-          if (!currentUser.value) {
-            checkSavedSession();
-          }
         }
         if (compRes.data && compRes.data.length > 0) {
           Object.assign(company, fromSupabaseCompany(compRes.data[0]));
         }
 
         saveToStorage();
-        console.log(`[Supabase Sync] Sincronizados con éxito: ${tools.value.length} equipos, ${loans.value.length} préstamos, ${technicians.value.length} técnicos.`);
+        setupRealtimeSubscription();
+        console.log(`[Supabase Multi-Tenant Sync] Sincronizados con éxito para empresa "${currentCompanyId.value}": ${tools.value.length} equipos, ${loans.value.length} préstamos, ${technicians.value.length} técnicos.`);
       } catch (err) {
         console.error('Error descargando datos de Supabase:', err);
       } finally {
@@ -1161,7 +1221,7 @@ const app = createApp({
           }
         });
 
-        // Verificar conexión con consulta ligera a la tabla company
+        // Verificar conexión con consulta ligera
         const { data, error } = await client.from('company').select('id').limit(1);
         if (error) {
           throw error;
@@ -1174,8 +1234,12 @@ const app = createApp({
 
         localStorage.setItem('TOOLMASTER_SUPABASE_CONFIG', JSON.stringify({ url, anonKey: key }));
 
-        await fetchAllFromSupabase();
-        setupRealtimeSubscription();
+        // Cero Fugas de Datos: Solo descargar catálogo y suscribir si el usuario ya está autenticado
+        if (currentUser.value) {
+          applyClientHeaders();
+          await fetchAllFromSupabase();
+          setupRealtimeSubscription();
+        }
 
         return true;
       } catch (err) {
@@ -1223,14 +1287,19 @@ const app = createApp({
       notify('Desconectado de Supabase. El sistema ahora opera en Modo Local (offline).', 'info');
     };
 
-    // Migración 1-Clic: Subir todos los datos locales actuales a Supabase
+    // Migración 1-Clic: Subir todos los datos locales actuales a Supabase (Solo Admin)
     const uploadLocalDataToSupabase = async () => {
+      if (!isAdmin.value) {
+        notify('Acción restringida: solo un administrador puede subir datos a la nube', 'error');
+        return;
+      }
       if (!supabaseClient.value) {
         notify('Debes conectar Supabase antes de subir datos', 'error');
         return;
       }
       try {
         isSyncingCloud.value = true;
+        applyClientHeaders();
         notify('Sincronizando base de datos local con Supabase...', 'info');
 
         // 1. Empresa
@@ -1288,19 +1357,28 @@ const app = createApp({
       showSupabaseModal.value = true;
     };
 
-    // Sincronizar datos de empresa con Supabase al modificarlos
+    // Sincronizar datos de empresa con Supabase al modificarlos (Solo Administrador)
     watch(company, () => {
       saveToStorage();
-      if (supabaseConnected.value && supabaseClient.value) {
+      if (supabaseConnected.value && supabaseClient.value && isAdmin.value) {
         supabaseClient.value.from('company').upsert([toSupabaseCompany(company)]).then(({ error }) => {
           if (error) console.error('Supabase company sync error:', error);
         });
       }
     }, { deep: true });
 
-    // AUTENTICACIÓN: Login y Logout
+    // AUTENTICACIÓN: Login con Rate Limiting & RPC Criptográfica
     const login = async () => {
       loginForm.error = '';
+
+      // 1. Rate Limiting en Cliente
+      const now = Date.now();
+      if (loginLockoutUntil.value > now) {
+        const remainingSecs = Math.ceil((loginLockoutUntil.value - now) / 1000);
+        loginForm.error = `Demasiados intentos fallidos. Por seguridad, espera ${remainingSecs} segundos antes de reintentar.`;
+        return;
+      }
+
       if (!loginForm.username.trim()) {
         loginForm.error = 'Ingresa tu nombre de usuario o correo electrónico.';
         return;
@@ -1311,20 +1389,90 @@ const app = createApp({
       }
 
       loginForm.loading = true;
-      const targetUser = loginForm.username.trim().toLowerCase();
+      const targetUser = sanitizeInput(loginForm.username.trim().toLowerCase());
       const inputHash = await hashPassword(loginForm.password);
 
+      // 2. Procedimiento Criptográfico en Supabase (app_login)
+      if (supabaseConnected.value && supabaseClient.value) {
+        try {
+          const { data: authResult, error: rpcError } = await supabaseClient.value.rpc('app_login', {
+            p_username: targetUser,
+            p_password_hash: inputHash,
+            p_company_id: currentCompanyId.value || 'main'
+          });
+
+          if (!rpcError && authResult) {
+            if (!authResult.success) {
+              failedLoginAttempts.value++;
+              if (failedLoginAttempts.value >= 5) {
+                loginLockoutUntil.value = Date.now() + 60000;
+              }
+              loginForm.error = authResult.error || 'Credenciales inválidas.';
+              loginForm.loading = false;
+              return;
+            }
+
+            // Inicio exitoso autenticado por el servidor
+            failedLoginAttempts.value = 0;
+            sessionToken.value = authResult.session_token || '';
+            currentCompanyId.value = authResult.user.company_id || 'main';
+            currentUser.value = {
+              id: authResult.user.id,
+              username: authResult.user.username,
+              name: authResult.user.name,
+              email: authResult.user.email,
+              role: authResult.user.role,
+              companyId: authResult.user.company_id
+            };
+
+            if (authResult.company) {
+              Object.assign(company, fromSupabaseCompany(authResult.company));
+            }
+
+            applyClientHeaders();
+
+            const sessionPayload = {
+              userId: authResult.user.id,
+              username: authResult.user.username,
+              companyId: authResult.user.company_id,
+              role: authResult.user.role,
+              token: authResult.session_token,
+              expiresAt: authResult.expires_at ? new Date(authResult.expires_at).getTime() : (Date.now() + 30 * 86400000),
+              loginTime: Date.now()
+            };
+
+            if (loginForm.remember) {
+              localStorage.setItem(SESSION_KEY, JSON.stringify(sessionPayload));
+            } else {
+              sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionPayload));
+            }
+
+            loginForm.password = '';
+            loginForm.error = '';
+            loginForm.loading = false;
+            notify(`¡Bienvenido/a, ${authResult.user.name}!`);
+
+            await fetchAllFromSupabase();
+            return;
+          }
+        } catch (e) {
+          console.warn('RPC app_login falló o no existe aún en la base de datos:', e);
+        }
+      }
+
+      // 3. Fallback Seguro Offline / PWA
       let found = users.value.find(u => 
         (u.username && u.username.toLowerCase() === targetUser) ||
         (u.email && u.email.toLowerCase() === targetUser)
       );
 
-      // Si no se encuentra en el caché local pero Supabase está conectado, consultar en la nube
+      // Si no se encuentra en el caché local pero Supabase está conectado
       if (!found && supabaseConnected.value && supabaseClient.value) {
         try {
           const { data, error } = await supabaseClient.value
             .from('users')
-            .select('*')
+            .select('id, username, name, email, role, active, created_at, company_id')
+            .eq('company_id', currentCompanyId.value || 'main')
             .or(`username.eq.${targetUser},email.eq.${targetUser}`)
             .limit(1);
           if (data && data.length > 0) {
@@ -1338,6 +1486,10 @@ const app = createApp({
       }
 
       if (!found) {
+        failedLoginAttempts.value++;
+        if (failedLoginAttempts.value >= 5) {
+          loginLockoutUntil.value = Date.now() + 60000;
+        }
         loginForm.error = 'Usuario no encontrado en el sistema.';
         loginForm.loading = false;
         return;
@@ -1349,64 +1501,126 @@ const app = createApp({
         return;
       }
 
-      if (found.passwordHash !== inputHash) {
+      if (found.passwordHash && found.passwordHash !== inputHash) {
+        failedLoginAttempts.value++;
+        if (failedLoginAttempts.value >= 5) {
+          loginLockoutUntil.value = Date.now() + 60000;
+        }
         loginForm.error = 'Clave de acceso incorrecta. Verifica mayúsculas y minúsculas.';
         loginForm.loading = false;
         return;
       }
 
-      // Inicio exitoso
+      // Inicio exitoso modo offline
+      failedLoginAttempts.value = 0;
+      currentCompanyId.value = found.companyId || 'main';
       currentUser.value = {
         id: found.id,
         username: found.username,
         name: found.name,
         email: found.email,
-        role: found.role
+        role: found.role,
+        companyId: found.companyId || 'main'
+      };
+
+      const sessionPayload = {
+        userId: found.id,
+        username: found.username,
+        companyId: found.companyId || 'main',
+        role: found.role,
+        token: '',
+        expiresAt: Date.now() + 7 * 86400000,
+        loginTime: Date.now()
       };
 
       if (loginForm.remember) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify({
-          userId: found.id,
-          username: found.username,
-          loginTime: Date.now()
-        }));
+        localStorage.setItem(SESSION_KEY, JSON.stringify(sessionPayload));
       } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify({
-          userId: found.id,
-          username: found.username,
-          loginTime: Date.now()
-        }));
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionPayload));
       }
 
       loginForm.password = '';
       loginForm.error = '';
       loginForm.loading = false;
       notify(`¡Bienvenido/a, ${found.name}!`);
+
+      if (supabaseConnected.value && supabaseClient.value) {
+        await fetchAllFromSupabase();
+      }
     };
 
-    const logout = () => {
+    const logout = async () => {
+      if (sessionToken.value && supabaseConnected.value && supabaseClient.value) {
+        try {
+          await supabaseClient.value.rpc('app_logout', { p_token: sessionToken.value });
+        } catch (e) {}
+      }
+      if (supabaseClient.value) {
+        try {
+          supabaseClient.value.removeAllChannels();
+        } catch (e) {}
+      }
+      sessionToken.value = '';
       currentUser.value = null;
+      tools.value = [];
+      loans.value = [];
+      maintenances.value = [];
+      technicians.value = [];
+      users.value = [];
       localStorage.removeItem(SESSION_KEY);
       sessionStorage.removeItem(SESSION_KEY);
       activeTab.value = 'dashboard';
       notify('Has cerrado sesión correctamente', 'info');
     };
 
-    const checkSavedSession = () => {
+    const checkSavedSession = async () => {
       try {
         const storedSession = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
         if (storedSession) {
           const parsed = JSON.parse(storedSession);
-          if (parsed.userId) {
-            const found = users.value.find(u => u.id === parsed.userId && u.active);
-            if (found) {
-              currentUser.value = {
-                id: found.id,
-                username: found.username,
-                name: found.name,
-                email: found.email,
-                role: found.role
-              };
+          if (parsed && parsed.userId) {
+            // Validar expiración de sesión
+            if (parsed.expiresAt && Date.now() > parsed.expiresAt) {
+              logout();
+              return;
+            }
+
+            sessionToken.value = parsed.token || '';
+            currentCompanyId.value = parsed.companyId || 'main';
+
+            currentUser.value = {
+              id: parsed.userId,
+              username: parsed.username,
+              name: parsed.name || parsed.username,
+              email: parsed.email || '',
+              role: parsed.role || 'almacen',
+              companyId: parsed.companyId || 'main'
+            };
+
+            applyClientHeaders();
+
+            // Validar con la base de datos de forma asíncrona
+            if (parsed.token && supabaseConnected.value && supabaseClient.value) {
+              try {
+                const { data, error } = await supabaseClient.value.rpc('validate_session', { p_token: parsed.token });
+                if (!error && data && data.valid === true) {
+                  currentUser.value = {
+                    ...currentUser.value,
+                    ...data.user,
+                    companyId: data.user.company_id
+                  };
+                  currentCompanyId.value = data.user.company_id;
+                  if (data.company) {
+                    Object.assign(company, fromSupabaseCompany(data.company));
+                  }
+                  await fetchAllFromSupabase();
+                } else if (data && data.valid === false) {
+                  console.warn('Sesión de usuario revocada o vencida en el servidor.');
+                  logout();
+                }
+              } catch (err) {
+                console.warn('Error verificando sesión en Supabase:', err);
+              }
             }
           }
         }
@@ -1483,18 +1697,24 @@ const app = createApp({
     };
 
     const saveUser = async () => {
+      if (!isAdmin.value) {
+        notify('Permiso denegado: solo administradores pueden gestionar usuarios', 'error');
+        return;
+      }
       if (!userForm.name.trim() || !userForm.username.trim()) {
         notify('El nombre y el nombre de usuario son obligatorios', 'warning');
         return;
       }
 
-      const normalizedUsername = userForm.username.trim().toLowerCase();
-      // Validar nombre de usuario único
+      const normalizedUsername = sanitizeInput(userForm.username.trim().toLowerCase());
+      // Validar nombre de usuario único en esta empresa
       const existing = users.value.find(u => u.username.toLowerCase() === normalizedUsername && u.id !== userForm.id);
       if (existing) {
-        notify('Ese nombre de usuario ya está registrado. Elige otro.', 'warning');
+        notify('Ese nombre de usuario ya está registrado en tu empresa. Elige otro.', 'warning');
         return;
       }
+
+      let targetUserObj = null;
 
       if (!isEditingUser.value) {
         // Nuevo usuario requiere clave
@@ -1507,16 +1727,18 @@ const app = createApp({
           return;
         }
         const pHash = await hashPassword(userForm.password);
-        users.value.push({
-          id: userForm.id,
-          name: userForm.name.trim(),
+        targetUserObj = {
+          id: userForm.id || ('usr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)),
+          companyId: currentCompanyId.value,
+          name: sanitizeInput(userForm.name.trim()),
           username: normalizedUsername,
-          email: userForm.email.trim(),
+          email: sanitizeInput(userForm.email.trim()),
           passwordHash: pHash,
           role: userForm.role,
           active: userForm.active,
           createdAt: new Date().toISOString().split('T')[0]
-        });
+        };
+        users.value.push(targetUserObj);
         notify(`Usuario "${userForm.name}" creado con éxito`);
       } else {
         // Editando usuario
@@ -1533,17 +1755,20 @@ const app = createApp({
 
           users.value[idx] = {
             ...users.value[idx],
-            name: userForm.name.trim(),
+            companyId: currentCompanyId.value,
+            name: sanitizeInput(userForm.name.trim()),
             username: normalizedUsername,
-            email: userForm.email.trim(),
+            email: sanitizeInput(userForm.email.trim()),
             role: userForm.role,
             active: userForm.active,
-            passwordHash: updatedHash
+            ...(updatedHash ? { passwordHash: updatedHash } : {})
           };
+
+          targetUserObj = users.value[idx];
 
           // Si el usuario editado es el actual en sesión, actualizar sesión
           if (currentUser.value && currentUser.value.id === userForm.id) {
-            currentUser.value.name = userForm.name.trim();
+            currentUser.value.name = sanitizeInput(userForm.name.trim());
             currentUser.value.username = normalizedUsername;
             currentUser.value.role = userForm.role;
           }
@@ -1552,20 +1777,24 @@ const app = createApp({
         }
       }
 
-      // Sincronizar en Supabase
-      if (supabaseConnected.value && supabaseClient.value) {
-        const targetUserObj = users.value.find(u => u.id === userForm.id);
-        if (targetUserObj) {
-          supabaseClient.value.from('users').upsert([toSupabaseUser(targetUserObj)]).then(({ error }) => {
+      // Sincronizar en Supabase con scope de empresa
+      if (supabaseConnected.value && supabaseClient.value && targetUserObj) {
+        supabaseClient.value
+          .from('users')
+          .upsert([toSupabaseUser(targetUserObj)])
+          .then(({ error }) => {
             if (error) console.error('Supabase saveUser error:', error);
           });
-        }
       }
 
       showUserModal.value = false;
     };
 
     const deleteUser = (user) => {
+      if (!isAdmin.value) {
+        notify('Permiso denegado: solo administradores pueden eliminar usuarios', 'error');
+        return;
+      }
       if (user.id === currentUser.value?.id) {
         notify('No puedes eliminar tu propia cuenta en uso', 'error');
         return;
@@ -1578,24 +1807,40 @@ const app = createApp({
         users.value = users.value.filter(u => u.id !== user.id);
         notify(`Usuario eliminado`);
         if (supabaseConnected.value && supabaseClient.value) {
-          supabaseClient.value.from('users').delete().eq('id', user.id).then(({ error }) => {
-            if (error) console.error('Supabase deleteUser error:', error);
-          });
+          supabaseClient.value
+            .from('users')
+            .delete()
+            .eq('id', user.id)
+            .eq('company_id', currentCompanyId.value)
+            .then(({ error }) => {
+              if (error) console.error('Supabase deleteUser error:', error);
+            });
         }
       }
     };
 
     const toggleUserStatus = (user) => {
+      if (!isAdmin.value) {
+        notify('Permiso denegado: solo administradores pueden cambiar estado de usuarios', 'error');
+        return;
+      }
       if (user.id === currentUser.value?.id) {
         notify('No puedes desactivar tu propia cuenta en sesión', 'warning');
+        return;
+      }
+      if (user.username === 'admin' && user.active) {
+        notify('El administrador principal no puede ser desactivado', 'error');
         return;
       }
       user.active = !user.active;
       notify(`Usuario "${user.name}" ${user.active ? 'activado' : 'desactivado'}`);
       if (supabaseConnected.value && supabaseClient.value) {
-        supabaseClient.value.from('users').upsert([toSupabaseUser(user)]).then(({ error }) => {
-          if (error) console.error('Supabase toggleUserStatus error:', error);
-        });
+        supabaseClient.value
+          .from('users')
+          .upsert([toSupabaseUser(user)])
+          .then(({ error }) => {
+            if (error) console.error('Supabase toggleUserStatus error:', error);
+          });
       }
     };
 
@@ -2270,6 +2515,10 @@ const app = createApp({
     };
 
     const savePerformMaintenance = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!performMaintForm.tool) return;
       if (!performMaintForm.description.trim()) {
         notify('Por favor describe brevemente cómo encontró o cómo funcionó el equipo', 'warning');
@@ -2369,6 +2618,10 @@ const app = createApp({
     };
 
     const savePerformHeating = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!performHeatingForm.tool) return;
       if (!performHeatingForm.description.trim()) {
         notify('Por favor describe brevemente cómo encontró o cómo funcionó el equipo', 'warning');
@@ -2439,6 +2692,10 @@ const app = createApp({
     };
 
     const saveTool = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!toolForm.name || !toolForm.code) {
         notify('Por favor completa el código y el nombre de la herramienta', 'warning');
         return;
@@ -2542,6 +2799,10 @@ const app = createApp({
     };
 
     const saveLoan = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!loanForm.technicianId) {
         notify('Selecciona el técnico responsable', 'warning');
         return;
@@ -2640,6 +2901,10 @@ const app = createApp({
     };
 
     const processReturn = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       const loan = returnForm.loan;
       if (!loan) return;
 
@@ -2750,6 +3015,10 @@ const app = createApp({
     };
 
     const saveMaintenance = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!maintForm.toolId) {
         notify('Selecciona el equipo para mantenimiento', 'warning');
         return;
@@ -2834,6 +3103,10 @@ const app = createApp({
     };
 
     const saveCorrectiveMaintenance = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!correctiveForm.toolId) {
         notify('Por favor selecciona el equipo averiado', 'warning');
         return;
@@ -2921,6 +3194,10 @@ const app = createApp({
     };
 
     const saveOperationalTest = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!testForm.toolId) {
         notify('Selecciona el equipo al que se le realizó la prueba', 'warning');
         return;
@@ -3015,6 +3292,10 @@ const app = createApp({
     };
 
     const finalizeMaintenance = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       const m = completeMaintForm.maint;
       if (!m) return;
 
@@ -3096,6 +3377,10 @@ const app = createApp({
     };
 
     const saveTechnician = () => {
+      if (isConsulta.value) {
+        notify('Permiso denegado: tu rol es de solo lectura', 'error');
+        return;
+      }
       if (!techForm.name || !techForm.dni) {
         notify('Ingresa el nombre y la identificación del técnico', 'warning');
         return;
@@ -3160,10 +3445,14 @@ const app = createApp({
       window.print();
     };
 
-    // ELIMINACIONES
+    // ELIMINACIONES SEGURAS (PROTECCIÓN IDOR & ROW-LEVEL-SECURITY)
     const deleteTool = (tool) => {
       if (isConsulta.value) {
         notify('Permiso denegado: solo lectura', 'error');
+        return;
+      }
+      if (!isAdmin.value && !isAlmacen.value) {
+        notify('Permiso denegado', 'error');
         return;
       }
       if (tool.status === 'prestado') {
@@ -3174,9 +3463,14 @@ const app = createApp({
         tools.value = tools.value.filter(t => t.id !== tool.id);
         notify(`Equipo eliminado del catálogo`);
         if (supabaseConnected.value && supabaseClient.value) {
-          supabaseClient.value.from('tools').delete().eq('id', tool.id).then(({ error }) => {
-            if (error) console.error('Supabase deleteTool error:', error);
-          });
+          supabaseClient.value
+            .from('tools')
+            .delete()
+            .eq('id', tool.id)
+            .eq('company_id', currentCompanyId.value)
+            .then(({ error }) => {
+              if (error) console.error('Supabase deleteTool error:', error);
+            });
         }
       }
     };
@@ -3184,6 +3478,10 @@ const app = createApp({
     const deleteTechnician = (tech) => {
       if (isConsulta.value) {
         notify('Permiso denegado: solo lectura', 'error');
+        return;
+      }
+      if (!isAdmin.value) {
+        notify('Solo administradores pueden eliminar técnicos', 'error');
         return;
       }
       const hasActive = activeLoans.value.some(l => l.technicianId === tech.id);
@@ -3195,9 +3493,14 @@ const app = createApp({
         technicians.value = technicians.value.filter(t => t.id !== tech.id);
         notify(`Técnico eliminado`);
         if (supabaseConnected.value && supabaseClient.value) {
-          supabaseClient.value.from('technicians').delete().eq('id', tech.id).then(({ error }) => {
-            if (error) console.error('Supabase deleteTechnician error:', error);
-          });
+          supabaseClient.value
+            .from('technicians')
+            .delete()
+            .eq('id', tech.id)
+            .eq('company_id', currentCompanyId.value)
+            .then(({ error }) => {
+              if (error) console.error('Supabase deleteTechnician error:', error);
+            });
         }
       }
     };
@@ -4158,7 +4461,10 @@ const app = createApp({
       isLoanOverdue,
       getDaysDifference,
       getStatusBadge,
-      getStatusLabel
+      getStatusLabel,
+      // Contexto Multi-Tenant y Sesión
+      currentCompanyId,
+      sessionToken
     };
   }
 });

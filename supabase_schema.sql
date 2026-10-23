@@ -1,14 +1,11 @@
 -- ==============================================================================
--- TOOLMASTER PRO - SCRIPT DE INSTALACIÓN Y CONFIGURACIÓN EN SUPABASE (POSTGRESQL)
--- ==============================================================================
--- Instrucciones:
--- 1. Entra a tu proyecto en https://supabase.com
--- 2. Ve al menú "SQL Editor" en la barra lateral izquierda.
--- 3. Crea una "New query", pega todo el contenido de este archivo y pulsa "Run" (Ejecutar).
--- 4. ¡Listo! Todas las tablas, permisos y eventos en tiempo real quedarán activos.
+-- TOOLPRO - SCHEMA OFICIAL MULTI-TENANT & ROW LEVEL SECURITY (RLS)
+-- Base de Datos PostgreSQL en Supabase para Múltiples Empresas Autónomas
 -- ==============================================================================
 
--- 1. TABLA: EMPRESA / ALMACÉN
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 1. TABLA: EMPRESAS / ORGANIZACIONES (TENANTS)
 CREATE TABLE IF NOT EXISTS public.company (
     id TEXT PRIMARY KEY DEFAULT 'main',
     name TEXT NOT NULL,
@@ -17,24 +14,29 @@ CREATE TABLE IF NOT EXISTS public.company (
     address TEXT,
     phone TEXT,
     manager TEXT,
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. TABLA: USUARIOS Y ACCESOS
+-- 2. TABLA: USUARIOS Y ACCESOS (PARTICIONADO POR EMPRESA)
 CREATE TABLE IF NOT EXISTS public.users (
     id TEXT PRIMARY KEY,
-    username TEXT UNIQUE NOT NULL,
+    company_id TEXT NOT NULL DEFAULT 'main' REFERENCES public.company(id) ON UPDATE CASCADE ON DELETE CASCADE,
+    username TEXT NOT NULL,
     name TEXT NOT NULL,
     email TEXT,
     password_hash TEXT NOT NULL,
     role TEXT DEFAULT 'almacen', -- 'admin', 'almacen', 'consulta'
     active BOOLEAN DEFAULT TRUE,
-    created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD')
+    created_at TEXT DEFAULT TO_CHAR(NOW(), 'YYYY-MM-DD'),
+    CONSTRAINT uq_company_username UNIQUE (company_id, username)
 );
 
--- 3. TABLA: HERRAMIENTAS Y MAQUINARIA
+-- 3. TABLA: HERRAMIENTAS Y MAQUINARIA (PARTICIONADO POR EMPRESA)
 CREATE TABLE IF NOT EXISTS public.tools (
     id TEXT PRIMARY KEY,
+    company_id TEXT NOT NULL DEFAULT 'main' REFERENCES public.company(id) ON UPDATE CASCADE ON DELETE CASCADE,
     code TEXT NOT NULL,
     name TEXT NOT NULL,
     category TEXT,
@@ -46,14 +48,13 @@ CREATE TABLE IF NOT EXISTS public.tools (
     acquisition_date TEXT,
     cost NUMERIC DEFAULT 0,
     notes TEXT,
-    -- Campos para mantenimiento periódico y pruebas operativas
     requires_periodic_maintenance BOOLEAN DEFAULT FALSE,
-    maintenance_period TEXT DEFAULT 'trimestral', -- 'mensual', 'trimestral', 'semestral', 'anual'
+    maintenance_period TEXT DEFAULT 'trimestral',
     maintenance_period_days INTEGER DEFAULT 90,
     last_maintenance_date TEXT,
     next_maintenance_date TEXT,
     requires_periodic_testing BOOLEAN DEFAULT FALSE,
-    testing_period TEXT DEFAULT '15_dias', -- '15_dias', '1_mes', '3_meses'
+    testing_period TEXT DEFAULT '15_dias',
     testing_period_days INTEGER DEFAULT 15,
     last_testing_date TEXT,
     next_testing_date TEXT,
@@ -63,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.tools (
 -- 4. TABLA: PERSONAL TÉCNICO Y OPERADORES
 CREATE TABLE IF NOT EXISTS public.technicians (
     id TEXT PRIMARY KEY,
+    company_id TEXT NOT NULL DEFAULT 'main' REFERENCES public.company(id) ON UPDATE CASCADE ON DELETE CASCADE,
     dni TEXT NOT NULL,
     name TEXT NOT NULL,
     phone TEXT,
@@ -75,6 +77,7 @@ CREATE TABLE IF NOT EXISTS public.technicians (
 -- 5. TABLA: PRÉSTAMOS, ENTREGAS Y DEVOLUCIONES
 CREATE TABLE IF NOT EXISTS public.loans (
     id TEXT PRIMARY KEY,
+    company_id TEXT NOT NULL DEFAULT 'main' REFERENCES public.company(id) ON UPDATE CASCADE ON DELETE CASCADE,
     voucher_number TEXT NOT NULL,
     technician_id TEXT,
     technician_name TEXT,
@@ -95,14 +98,15 @@ CREATE TABLE IF NOT EXISTS public.loans (
     created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
 );
 
--- 6. TABLA: GESTIÓN DE MANTENIMIENTOS
+-- 6. TABLA: GESTIÓN DE MANTENIMIENTOS Y ÓRDENES DE TALLER
 CREATE TABLE IF NOT EXISTS public.maintenances (
     id TEXT PRIMARY KEY,
+    company_id TEXT NOT NULL DEFAULT 'main' REFERENCES public.company(id) ON UPDATE CASCADE ON DELETE CASCADE,
     code TEXT NOT NULL,
     tool_id TEXT,
     tool_code TEXT,
     tool_name TEXT,
-    type TEXT DEFAULT 'preventivo', -- 'preventivo', 'correctivo', 'prueba'
+    type TEXT DEFAULT 'preventivo', -- 'preventivo', 'correctivo', 'prueba', 'calentamiento'
     status TEXT DEFAULT 'programado', -- 'programado', 'en_proceso', 'completado', 'cancelado'
     priority TEXT DEFAULT 'media', -- 'urgente', 'alta', 'media', 'baja'
     scheduled_date TEXT,
@@ -117,31 +121,283 @@ CREATE TABLE IF NOT EXISTS public.maintenances (
     work_done TEXT,
     parts_replaced TEXT,
     next_maintenance_date TEXT,
-    testing_result TEXT, -- 'satisfactorio', 'fallido'
+    testing_result TEXT, -- 'satisfactorio', 'fallido', 'con_novedad'
     created_at BIGINT DEFAULT EXTRACT(EPOCH FROM NOW()) * 1000
 );
 
--- Migraciones automáticas para tablas ya creadas previamente
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS requires_periodic_maintenance BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS maintenance_period TEXT DEFAULT 'trimestral';
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS maintenance_period_days INTEGER DEFAULT 90;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS last_maintenance_date TEXT;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS next_maintenance_date TEXT;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS requires_periodic_testing BOOLEAN DEFAULT FALSE;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS testing_period TEXT DEFAULT '15_dias';
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS testing_period_days INTEGER DEFAULT 15;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS last_testing_date TEXT;
-ALTER TABLE public.tools ADD COLUMN IF NOT EXISTS next_testing_date TEXT;
+-- 7. TABLA DE SESIONES ACTIVAS
+CREATE TABLE IF NOT EXISTS public.user_sessions (
+    token TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    company_id TEXT NOT NULL REFERENCES public.company(id) ON DELETE CASCADE,
+    role TEXT NOT NULL DEFAULT 'almacen',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ NOT NULL
+);
 
-ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'media';
-ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS estimated_cost NUMERIC DEFAULT 0;
-ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS failure_description TEXT;
-ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS work_to_do TEXT;
-ALTER TABLE public.maintenances ADD COLUMN IF NOT EXISTS testing_result TEXT;
+-- 8. TABLA DE AUDITORÍA Y PROTECCIÓN CONTRA FUERZA BRUTA
+CREATE TABLE IF NOT EXISTS public.login_attempts (
+    id BIGSERIAL PRIMARY KEY,
+    username TEXT NOT NULL,
+    company_id TEXT,
+    success BOOLEAN NOT NULL,
+    ip_address TEXT,
+    attempted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ÍNDICES COMPUESTOS MULTI-TENANT
+CREATE INDEX IF NOT EXISTS idx_tools_tenant ON public.tools(company_id, id);
+CREATE INDEX IF NOT EXISTS idx_tools_code ON public.tools(company_id, code);
+CREATE INDEX IF NOT EXISTS idx_loans_tenant ON public.loans(company_id, id);
+CREATE INDEX IF NOT EXISTS idx_loans_status ON public.loans(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_maints_tenant ON public.maintenances(company_id, id);
+CREATE INDEX IF NOT EXISTS idx_techs_tenant ON public.technicians(company_id, id);
+CREATE INDEX IF NOT EXISTS idx_users_tenant ON public.users(company_id, id);
+CREATE INDEX IF NOT EXISTS idx_sessions_lookup ON public.user_sessions(token, expires_at);
 
 -- ==============================================================================
--- POLÍTICAS DE SEGURIDAD (ROW LEVEL SECURITY - RLS)
--- Permitir acceso público con la Anon Key para frontend autónomo
+-- FUNCIONES DE SEGURIDAD SERVER-SIDE
+-- ==============================================================================
+
+CREATE OR REPLACE FUNCTION public.auth_tenant_id()
+RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+DECLARE
+    v_headers JSONB;
+    v_token TEXT;
+    v_company_id TEXT;
+BEGIN
+    BEGIN
+        v_headers := NULLIF(current_setting('request.headers', true), '')::jsonb;
+    EXCEPTION WHEN OTHERS THEN
+        v_headers := '{}'::jsonb;
+    END;
+
+    v_token := v_headers->>'x-session-token';
+
+    IF v_token IS NOT NULL AND v_token <> '' THEN
+        SELECT company_id INTO v_company_id
+        FROM public.user_sessions
+        WHERE token = v_token AND expires_at > NOW();
+
+        IF v_company_id IS NOT NULL THEN
+            RETURN v_company_id;
+        END IF;
+    END IF;
+
+    IF auth.jwt() IS NOT NULL THEN
+        v_company_id := auth.jwt()->'app_metadata'->>'company_id';
+        IF v_company_id IS NOT NULL THEN RETURN v_company_id; END IF;
+        v_company_id := auth.jwt()->'user_metadata'->>'company_id';
+        IF v_company_id IS NOT NULL THEN RETURN v_company_id; END IF;
+    END IF;
+
+    v_company_id := v_headers->>'x-company-id';
+    IF v_company_id IS NOT NULL AND v_company_id <> '' THEN
+        RETURN v_company_id;
+    END IF;
+
+    RETURN 'main';
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.auth_user_role()
+RETURNS TEXT LANGUAGE plpgsql STABLE SECURITY DEFINER AS $$
+DECLARE
+    v_headers JSONB;
+    v_token TEXT;
+    v_role TEXT;
+BEGIN
+    BEGIN
+        v_headers := NULLIF(current_setting('request.headers', true), '')::jsonb;
+    EXCEPTION WHEN OTHERS THEN
+        v_headers := '{}'::jsonb;
+    END;
+
+    v_token := v_headers->>'x-session-token';
+
+    IF v_token IS NOT NULL AND v_token <> '' THEN
+        SELECT role INTO v_role
+        FROM public.user_sessions
+        WHERE token = v_token AND expires_at > NOW();
+
+        IF v_role IS NOT NULL THEN
+            RETURN v_role;
+        END IF;
+    END IF;
+
+    IF auth.jwt() IS NOT NULL THEN
+        v_role := auth.jwt()->'app_metadata'->>'role';
+        IF v_role IS NOT NULL THEN RETURN v_role; END IF;
+    END IF;
+
+    RETURN 'almacen';
+END;
+$$;
+
+-- AUTENTICACIÓN SEGURA (app_login)
+CREATE OR REPLACE FUNCTION public.app_login(
+    p_username TEXT,
+    p_password_hash TEXT,
+    p_company_id TEXT DEFAULT NULL
+)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_target_user TEXT;
+    v_recent_failures INTEGER;
+    v_user RECORD;
+    v_company RECORD;
+    v_session_token TEXT;
+    v_expires_at TIMESTAMPTZ;
+BEGIN
+    v_target_user := LOWER(TRIM(COALESCE(p_username, '')));
+
+    IF v_target_user = '' OR p_password_hash IS NULL OR p_password_hash = '' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Credenciales incompletas.');
+    END IF;
+
+    -- Brute force check (5 fallos en 15 min)
+    SELECT COUNT(*) INTO v_recent_failures
+    FROM public.login_attempts
+    WHERE username = v_target_user
+      AND success = FALSE
+      AND attempted_at > (NOW() - INTERVAL '15 minutes');
+
+    IF v_recent_failures >= 5 THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', 'Demasiados intentos fallidos. Cuenta bloqueada temporalmente durante 15 minutos.'
+        );
+    END IF;
+
+    IF p_company_id IS NOT NULL AND p_company_id <> '' THEN
+        SELECT * INTO v_user
+        FROM public.users
+        WHERE (LOWER(username) = v_target_user OR LOWER(email) = v_target_user)
+          AND company_id = p_company_id
+        LIMIT 1;
+    ELSE
+        SELECT * INTO v_user
+        FROM public.users
+        WHERE (LOWER(username) = v_target_user OR LOWER(email) = v_target_user)
+        ORDER BY CASE WHEN company_id = 'main' THEN 1 ELSE 2 END
+        LIMIT 1;
+    END IF;
+
+    IF v_user.id IS NULL THEN
+        INSERT INTO public.login_attempts (username, company_id, success)
+        VALUES (v_target_user, p_company_id, FALSE);
+        RETURN jsonb_build_object('success', false, 'error', 'Usuario o contraseña incorrectos.');
+    END IF;
+
+    IF v_user.active IS FALSE THEN
+        RETURN jsonb_build_object('success', false, 'error', 'Esta cuenta está desactivada.');
+    END IF;
+
+    IF v_user.password_hash <> p_password_hash THEN
+        INSERT INTO public.login_attempts (username, company_id, success)
+        VALUES (v_target_user, v_user.company_id, FALSE);
+        RETURN jsonb_build_object('success', false, 'error', 'Usuario o contraseña incorrectos.');
+    END IF;
+
+    SELECT * INTO v_company FROM public.company WHERE id = v_user.company_id;
+
+    v_session_token := encode(gen_random_bytes(32), 'hex');
+    v_expires_at := NOW() + INTERVAL '30 days';
+
+    INSERT INTO public.user_sessions (token, user_id, company_id, role, expires_at)
+    VALUES (v_session_token, v_user.id, v_user.company_id, v_user.role, v_expires_at);
+
+    INSERT INTO public.login_attempts (username, company_id, success)
+    VALUES (v_target_user, v_user.company_id, TRUE);
+
+    DELETE FROM public.login_attempts
+    WHERE username = v_target_user AND attempted_at < (NOW() - INTERVAL '1 day');
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'session_token', v_session_token,
+        'expires_at', v_expires_at,
+        'user', jsonb_build_object(
+            'id', v_user.id,
+            'username', v_user.username,
+            'name', v_user.name,
+            'email', v_user.email,
+            'role', v_user.role,
+            'company_id', v_user.company_id
+        ),
+        'company', jsonb_build_object(
+            'id', v_company.id,
+            'name', v_company.name,
+            'nit', v_company.nit,
+            'warehouse', v_company.warehouse,
+            'address', v_company.address,
+            'phone', v_company.phone,
+            'manager', v_company.manager
+        )
+    );
+END;
+$$;
+
+-- VALIDACIÓN Y LOGOUT
+CREATE OR REPLACE FUNCTION public.validate_session(p_token TEXT)
+RETURNS JSONB LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+    v_sess RECORD;
+    v_user RECORD;
+    v_company RECORD;
+BEGIN
+    IF p_token IS NULL OR p_token = '' THEN
+        RETURN jsonb_build_object('valid', false);
+    END IF;
+
+    SELECT * INTO v_sess FROM public.user_sessions WHERE token = p_token AND expires_at > NOW();
+    IF v_sess.token IS NULL THEN
+        RETURN jsonb_build_object('valid', false);
+    END IF;
+
+    SELECT * INTO v_user FROM public.users WHERE id = v_sess.user_id AND active = TRUE;
+    IF v_user.id IS NULL THEN
+        DELETE FROM public.user_sessions WHERE token = p_token;
+        RETURN jsonb_build_object('valid', false);
+    END IF;
+
+    SELECT * INTO v_company FROM public.company WHERE id = v_sess.company_id;
+
+    RETURN jsonb_build_object(
+        'valid', true,
+        'user', jsonb_build_object(
+            'id', v_user.id,
+            'username', v_user.username,
+            'name', v_user.name,
+            'email', v_user.email,
+            'role', v_sess.role,
+            'company_id', v_sess.company_id
+        ),
+        'company', jsonb_build_object(
+            'id', v_company.id,
+            'name', v_company.name,
+            'nit', v_company.nit,
+            'warehouse', v_company.warehouse,
+            'address', v_company.address,
+            'phone', v_company.phone,
+            'manager', v_company.manager
+        )
+    );
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.app_logout(p_token TEXT)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER AS $$
+BEGIN
+    IF p_token IS NOT NULL AND p_token <> '' THEN
+        DELETE FROM public.user_sessions WHERE token = p_token;
+    END IF;
+    RETURN TRUE;
+END;
+$$;
+
+-- ==============================================================================
+-- POLÍTICAS ROW LEVEL SECURITY (RLS) ESTRICTAS
 -- ==============================================================================
 
 ALTER TABLE public.company ENABLE ROW LEVEL SECURITY;
@@ -150,112 +406,101 @@ ALTER TABLE public.tools ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.technicians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.loans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.maintenances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.login_attempts ENABLE ROW LEVEL SECURITY;
 
--- Crear políticas permisivas para lectura y escritura desde la aplicación web
-DROP POLICY IF EXISTS "Acceso total anon company" ON public.company;
-CREATE POLICY "Acceso total anon company" ON public.company FOR ALL USING (true) WITH CHECK (true);
+-- company
+DROP POLICY IF EXISTS "company_tenant_select" ON public.company;
+CREATE POLICY "company_tenant_select" ON public.company FOR SELECT USING (id = public.auth_tenant_id());
 
-DROP POLICY IF EXISTS "Acceso total anon users" ON public.users;
-CREATE POLICY "Acceso total anon users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "company_tenant_update" ON public.company;
+CREATE POLICY "company_tenant_update" ON public.company FOR UPDATE USING (id = public.auth_tenant_id() AND public.auth_user_role() = 'admin') WITH CHECK (id = public.auth_tenant_id());
 
-DROP POLICY IF EXISTS "Acceso total anon tools" ON public.tools;
-CREATE POLICY "Acceso total anon tools" ON public.tools FOR ALL USING (true) WITH CHECK (true);
+-- tools
+DROP POLICY IF EXISTS "tools_tenant_select" ON public.tools;
+CREATE POLICY "tools_tenant_select" ON public.tools FOR SELECT USING (company_id = public.auth_tenant_id());
 
-DROP POLICY IF EXISTS "Acceso total anon technicians" ON public.technicians;
-CREATE POLICY "Acceso total anon technicians" ON public.technicians FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "tools_tenant_insert" ON public.tools;
+CREATE POLICY "tools_tenant_insert" ON public.tools FOR INSERT WITH CHECK (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen'));
 
-DROP POLICY IF EXISTS "Acceso total anon loans" ON public.loans;
-CREATE POLICY "Acceso total anon loans" ON public.loans FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "tools_tenant_update" ON public.tools;
+CREATE POLICY "tools_tenant_update" ON public.tools FOR UPDATE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen')) WITH CHECK (company_id = public.auth_tenant_id());
 
-DROP POLICY IF EXISTS "Acceso total anon maintenances" ON public.maintenances;
-CREATE POLICY "Acceso total anon maintenances" ON public.maintenances FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "tools_tenant_delete" ON public.tools;
+CREATE POLICY "tools_tenant_delete" ON public.tools FOR DELETE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin');
 
--- ==============================================================================
--- ACTIVACIÓN DE SUPABASE REALTIME (WEBSOCKETS EN VIVO)
--- ==============================================================================
+-- technicians
+DROP POLICY IF EXISTS "technicians_tenant_select" ON public.technicians;
+CREATE POLICY "technicians_tenant_select" ON public.technicians FOR SELECT USING (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "technicians_tenant_insert" ON public.technicians;
+CREATE POLICY "technicians_tenant_insert" ON public.technicians FOR INSERT WITH CHECK (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen'));
+
+DROP POLICY IF EXISTS "technicians_tenant_update" ON public.technicians;
+CREATE POLICY "technicians_tenant_update" ON public.technicians FOR UPDATE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen')) WITH CHECK (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "technicians_tenant_delete" ON public.technicians;
+CREATE POLICY "technicians_tenant_delete" ON public.technicians FOR DELETE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin');
+
+-- loans
+DROP POLICY IF EXISTS "loans_tenant_select" ON public.loans;
+CREATE POLICY "loans_tenant_select" ON public.loans FOR SELECT USING (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "loans_tenant_insert" ON public.loans;
+CREATE POLICY "loans_tenant_insert" ON public.loans FOR INSERT WITH CHECK (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen'));
+
+DROP POLICY IF EXISTS "loans_tenant_update" ON public.loans;
+CREATE POLICY "loans_tenant_update" ON public.loans FOR UPDATE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen')) WITH CHECK (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "loans_tenant_delete" ON public.loans;
+CREATE POLICY "loans_tenant_delete" ON public.loans FOR DELETE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin');
+
+-- maintenances
+DROP POLICY IF EXISTS "maintenances_tenant_select" ON public.maintenances;
+CREATE POLICY "maintenances_tenant_select" ON public.maintenances FOR SELECT USING (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "maintenances_tenant_insert" ON public.maintenances;
+CREATE POLICY "maintenances_tenant_insert" ON public.maintenances FOR INSERT WITH CHECK (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen'));
+
+DROP POLICY IF EXISTS "maintenances_tenant_update" ON public.maintenances;
+CREATE POLICY "maintenances_tenant_update" ON public.maintenances FOR UPDATE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() IN ('admin', 'almacen')) WITH CHECK (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "maintenances_tenant_delete" ON public.maintenances;
+CREATE POLICY "maintenances_tenant_delete" ON public.maintenances FOR DELETE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin');
+
+-- users
+DROP POLICY IF EXISTS "users_tenant_select" ON public.users;
+CREATE POLICY "users_tenant_select" ON public.users FOR SELECT USING (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "users_tenant_insert" ON public.users;
+CREATE POLICY "users_tenant_insert" ON public.users FOR INSERT WITH CHECK (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin');
+
+DROP POLICY IF EXISTS "users_tenant_update" ON public.users;
+CREATE POLICY "users_tenant_update" ON public.users FOR UPDATE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin') WITH CHECK (company_id = public.auth_tenant_id());
+
+DROP POLICY IF EXISTS "users_tenant_delete" ON public.users;
+CREATE POLICY "users_tenant_delete" ON public.users FOR DELETE USING (company_id = public.auth_tenant_id() AND public.auth_user_role() = 'admin');
+
+-- PERMISOS
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon, authenticated;
+GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated;
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+
+-- REALTIME REPLICA
+ALTER TABLE public.company REPLICA IDENTITY FULL;
+ALTER TABLE public.users REPLICA IDENTITY FULL;
+ALTER TABLE public.tools REPLICA IDENTITY FULL;
+ALTER TABLE public.technicians REPLICA IDENTITY FULL;
+ALTER TABLE public.loans REPLICA IDENTITY FULL;
+ALTER TABLE public.maintenances REPLICA IDENTITY FULL;
 
 DO $$
 BEGIN
-  BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.company;
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END;
-  BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END;
-  BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.tools;
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END;
-  BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.technicians;
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END;
-  BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.loans;
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END;
-  BEGIN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.maintenances;
-  EXCEPTION WHEN duplicate_object THEN NULL;
-  END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.company; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.users; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.tools; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.technicians; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.loans; EXCEPTION WHEN duplicate_object THEN NULL; END;
+  BEGIN ALTER PUBLICATION supabase_realtime ADD TABLE public.maintenances; EXCEPTION WHEN duplicate_object THEN NULL; END;
 END $$;
-
--- ==============================================================================
--- DATOS INICIALES (SEMILLA INDUSTRIAL)
--- ==============================================================================
-
--- Empresa inicial
-INSERT INTO public.company (id, name, nit, warehouse, address, phone, manager)
-VALUES ('main', 'MECATRÓNICA & CONSTRUCCIONES INDUSTRIALES S.A.', '900.854.120-4', 'Bodega Principal & Patio de Maquinaria Norte', 'Zona Industrial Calle 45 # 12-80', '+57 (601) 745-9000', 'Ing. Roberto Méndez (Jefe de Almacén)')
-ON CONFLICT (id) DO NOTHING;
-
--- Usuarios iniciales con contraseñas cifradas SHA-256 (admin123, almacen123, consulta123)
-INSERT INTO public.users (id, username, name, email, password_hash, role, active, created_at)
-VALUES 
-  ('usr_admin', 'admin', 'Administrador Principal', 'admin@empresa.com', '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', 'admin', true, '2026-01-01'),
-  ('usr_operador', 'operador', 'Carlos Almacén (Operador)', 'almacen@empresa.com', '7439033334ff7f5d2d164c47fe54b5819c0f7cd1225ecbc3bbac5bc80206b01f', 'almacen', true, '2026-02-10'),
-  ('usr_supervisor', 'supervisor', 'Ing. Diana Gómez (Auditor)', 'auditoria@empresa.com', '7fa95c704c2defa7b1295d28bcddfd752bf9b594db18886dd64721183cfc47a5', 'consulta', true, '2026-03-05')
-ON CONFLICT (id) DO NOTHING;
-
--- Herramientas y maquinaria de ejemplo
-INSERT INTO public.tools (id, code, name, category, brand, model, serial_number, status, location, acquisition_date, cost, notes)
-VALUES
-  ('tool_1', 'ROT-001', 'Rotomartillo SDS-Plus 800W Profesional', 'Herramienta Eléctrica', 'DeWalt', 'D25133K', 'DW-904821', 'prestado', 'Almacén Central - Estante A1', '2025-03-15', 210, 'Incluye maletín y juego de 3 brocas de impacto'),
-  ('tool_2', 'GEN-002', 'Generador Eléctrico Diésel 15 kVA Insonorizado', 'Generadores y Motores', 'Cummins', 'C15D5P', 'CM-8837190', 'disponible', 'Patio de Maquinaria - Bahía 3', '2024-11-10', 4500, 'Mantenimiento de aceite cada 250 horas de uso'),
-  ('tool_3', 'MIN-003', 'Minicargador Frontal con Orugas', 'Maquinaria Pesada', 'Bobcat', 'T590', 'BC-T590-7712', 'prestado', 'Obra Autopista Oriente', '2023-08-20', 38000, 'Requiere operador certificado con licencia C2'),
-  ('tool_4', 'SOL-004', 'Soldadora Inverter Multiproceso 250A', 'Soldadura', 'Lincoln Electric', 'Powercraft 250', 'LE-250-9941', 'mantenimiento', 'Taller de Mantenimiento Eléctrico', '2024-05-12', 1100, 'En revisión por recalentamiento de tarjeta de potencia'),
-  ('tool_5', 'FLU-005', 'Multímetro Digital Industrial True-RMS', 'Medición y Precisión', 'Fluke', '87V Max', 'FLK-87V-4421', 'disponible', 'Almacén Central - Armario Calibrados', '2025-01-20', 580, 'Calibración certificada vigente hasta Noviembre 2026'),
-  ('tool_6', 'COR-006', 'Cortadora de Concreto a Gasolina 14"', 'Maquinaria Pesada', 'Husqvarna', 'K770', 'HQ-K770-3321', 'prestado', 'Obra San Pedro', '2024-09-05', 1350, 'Filtro de aire recién reemplazado. Usa mezcla 2T 50:1'),
-  ('tool_7', 'LLV-007', 'Llave de Impacto Neumática 1/2" 1350 Nm', 'Neumática', 'Ingersoll Rand', '2235TiMAX', 'IR-2235-512', 'disponible', 'Almacén Central - Estante B3', '2025-02-18', 340, 'Lubricar a diario con aceite neumático antes de cada uso'),
-  ('tool_8', 'BAI-008', 'Apisonador Tipo Bailarina 4 Tiempos', 'Maquinaria Pesada', 'Wacker Neuson', 'BS50-4s', 'WN-BS50-801', 'disponible', 'Patio de Maquinaria - Bahía 1', '2024-06-30', 2900, 'Equipo clave para compactación en zanjas'),
-  ('tool_9', 'ESM-009', 'Esmeriladora Angular 9" 2600W de Alta Potencia', 'Herramienta Eléctrica', 'Bosch Professional', 'GWS 26-230 LVI', 'BOSH-230-661', 'disponible', 'Almacén Central - Estante A2', '2025-04-10', 240, 'Sistema de reducción de vibración KickBack Control'),
-  ('tool_10', 'LAS-010', 'Nivel Láser Autonivelante de 3 Líneas 360°', 'Medición y Precisión', 'Bosch', 'GLL 3-80 C', 'BOSH-LAS-1029', 'disponible', 'Almacén Central - Armario Calibrados', '2025-06-14', 620, 'Incluye trípode de aluminio y receptor láser'),
-  ('tool_11', 'COM-011', 'Compresor de Aire Bicilíndrico 60 Galones 5 HP', 'Neumática', 'Campbell Hausfeld', 'VT6275', 'CH-60G-4410', 'mantenimiento', 'Taller Central', '2023-10-15', 1450, 'Mantenimiento preventivo anual y cambio de aceite de cabezal'),
-  ('tool_12', 'AND-012', 'Juego de Andamio Multidireccional Certificado (2 Cuerpos)', 'Seguridad y Protección', 'Layher', 'Allround Steel', 'LAY-AL-2004', 'disponible', 'Bodega de Estructuras', '2024-02-11', 1200, 'Incluye 4 plataformas con escotilla y rodapiés')
-ON CONFLICT (id) DO NOTHING;
-
--- Técnicos de ejemplo
-INSERT INTO public.technicians (id, dni, name, phone, email, role, active, created_at)
-VALUES
-  ('tech_1', 'CC-10948271', 'Carlos Andrés Morales', '312-845-9201', 'carlos.morales@empresa.com', 'Técnico Mecánico Líder', true, '2024-01-10'),
-  ('tech_2', 'CC-79845112', 'Jorge Eliécer Peña', '315-992-1450', 'jorge.pena@empresa.com', 'Operador de Maquinaria Pesada', true, '2024-02-15'),
-  ('tech_3', 'CC-10178492', 'Diana Marcela Gómez', '320-641-3329', 'diana.gomez@empresa.com', 'Especialista en Instrumentación Eléctrica', true, '2024-03-01'),
-  ('tech_4', 'CC-80345678', 'Mauricio Silva Rivas', '318-774-8890', 'mauricio.silva@empresa.com', 'Oficial de Obras Civiles y Estructuras', true, '2024-04-12')
-ON CONFLICT (id) DO NOTHING;
-
--- Préstamos de ejemplo
-INSERT INTO public.loans (id, voucher_number, technician_id, technician_name, technician_dni, tool_ids, tool_snapshot, loan_date, expected_return_date, actual_return_date, status, project, delivery_condition, return_condition, delivery_notes, return_notes)
-VALUES
-  ('loan_1', 'VAL-2026-001', 'tech_1', 'Carlos Andrés Morales', 'CC-10948271', '["tool_1"]'::jsonb, '[{"id": "tool_1", "code": "ROT-001", "name": "Rotomartillo SDS-Plus 800W Profesional", "serialNumber": "DW-904821"}]'::jsonb, '2026-08-25 08:30', '2026-09-02', null, 'activo', 'Mantenimiento Preventivo Planta Papelera San José', 'Excelente', null, 'Se entrega con juego de brocas de 1/2 y 3/8"', ''),
-  ('loan_2', 'VAL-2026-002', 'tech_2', 'Jorge Eliécer Peña', 'CC-79845112', '["tool_3"]'::jsonb, '[{"id": "tool_3", "code": "MIN-003", "name": "Minicargador Frontal con Orugas", "serialNumber": "BC-T590-7712"}]'::jsonb, '2026-09-03 07:00', '2026-09-12', null, 'activo', 'Movimiento de Tierras Obra Autopista Oriente Tramo 4', 'Excelente', null, 'Tanque de combustible lleno al 100%, horómetro en 1.450 hrs.', ''),
-  ('loan_3', 'VAL-2026-003', 'tech_4', 'Mauricio Silva Rivas', 'CC-80345678', '["tool_6"]'::jsonb, '[{"id": "tool_6", "code": "COR-006", "name": "Cortadora de Concreto a Gasolina 14\"", "serialNumber": "HQ-K770-3321"}]'::jsonb, '2026-09-05 09:15', '2026-09-08', null, 'activo', 'Corte de losas en Bodega San Pedro', 'Buena', null, 'Disco diamantado con 70% de vida útil restante.', '')
-ON CONFLICT (id) DO NOTHING;
-
--- Mantenimientos de ejemplo
-INSERT INTO public.maintenances (id, code, tool_id, tool_code, tool_name, type, status, scheduled_date, completed_date, provider, responsible, cost, description, work_done, parts_replaced, next_maintenance_date)
-VALUES
-  ('maint_1', 'MNT-2026-001', 'tool_4', 'SOL-004', 'Soldadora Inverter Multiproceso 250A', 'correctivo', 'en_proceso', '2026-09-04', null, 'Servicio Autorizado Lincoln Electric', 'Ing. Carlos Morales', 180, 'Sobrecalentamiento tras 20 min de uso continuo en obra y testigo de alarma activado', '', '', '2027-03-01'),
-  ('maint_2', 'MNT-2026-002', 'tool_11', 'COM-011', 'Compresor de Aire Bicilíndrico 60 Galones 5 HP', 'preventivo', 'en_proceso', '2026-09-05', null, 'Taller de Mantenimiento Interno', 'Tec. Andrés Pérez', 65, 'Cambio anual de aceite ISO 100 de cabezal, purga de tanque y verificación de presostato', '', 'Filtro de admisión de aire, aceite sintético', '2027-09-05')
-ON CONFLICT (id) DO NOTHING;

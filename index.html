@@ -2287,7 +2287,12 @@
 
             <!-- Bloque 3: Datos de la Empresa para Vales -->
             <div class="md:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-sm">
-              <h3 class="font-bold text-white text-base">Datos de la Empresa (Membrete de Vales Imprimibles)</h3>
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <h3 class="font-bold text-white text-base">Datos de la Empresa (Membrete de Vales Imprimibles)</h3>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <span v-html="icons.shield" class="w-3 h-3"></span> Aislamiento Multi-Tenant Activo (Tenant: {{ currentCompanyId }})
+                </span>
+              </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
                 <div>
                   <label class="block text-slate-400 mb-1">Razón Social / Empresa:</label>
