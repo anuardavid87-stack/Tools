@@ -572,11 +572,79 @@ const app = createApp({
     const loans = ref([]);
     const maintenances = ref([]);
 
+    // =========================================================================
+    // UTILIDADES UNIVERSALES DE FECHAS (ESTÁNDAR: "dia/mes/año" DD/MM/AAAA)
+    // =========================================================================
+    const parseDateObj = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+      if (typeof val === 'number') {
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const str = String(val).trim();
+      if (!str) return null;
+
+      // Formato DD/MM/AAAA o DD/MM/AAAA HH:mm o DD-MM-AAAA
+      const dmyMatch = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (dmyMatch) {
+        const [, d, m, y, h, min, s] = dmyMatch;
+        return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0), Number(s || 0));
+      }
+
+      // Formato AAAA-MM-DD o AAAA-MM-DD HH:mm o ISO (2026-10-25T14:30:00)
+      const ymdMatch = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})(?:[T\s](\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/);
+      if (ymdMatch) {
+        const [, y, m, d, h, min, s] = ymdMatch;
+        return new Date(Number(y), Number(m) - 1, Number(d), Number(h || 0), Number(min || 0), Number(s || 0));
+      }
+
+      const parsed = new Date(str);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    // Formateador estándar a "dia/mes/año" (DD/MM/AAAA)
+    const formatDate = (val) => {
+      if (!val) return '';
+      const str = String(val).trim();
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+        return str;
+      }
+      if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(str)) {
+        const datePart = str.split(' ')[0];
+        const parts = datePart.split('/');
+        return `${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]}`;
+      }
+      const d = parseDateObj(val);
+      if (!d) return str;
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      return `${day}/${month}/${year}`;
+    };
+
+    // Formateador a "dia/mes/año" con hora si está disponible: DD/MM/AAAA HH:mm
+    const formatDateTime = (val) => {
+      if (!val) return '';
+      const str = String(val).trim();
+      const d = parseDateObj(val);
+      if (!d) return formatDate(val);
+
+      const dStr = formatDate(d);
+      const hasTime = str.includes(':') || (str.includes('T') && str.length > 10);
+      if (hasTime) {
+        const hours = String(d.getHours()).padStart(2, '0');
+        const minutes = String(d.getMinutes()).padStart(2, '0');
+        return `${dStr} ${hours}:${minutes}`;
+      }
+      return dStr;
+    };
+
     // Helper de fecha para cálculo de periodicidad
     const addDaysToDate = (baseDateStr, days) => {
       if (!baseDateStr || !days) return '';
       try {
-        const d = new Date(baseDateStr + 'T00:00:00');
+        const d = parseDateObj(baseDateStr) || new Date(baseDateStr);
         d.setDate(d.getDate() + Number(days));
         return d.toISOString().split('T')[0];
       } catch (e) {
@@ -1885,13 +1953,15 @@ const app = createApp({
       'Otros'
     ];
 
-    // Cálculos de fechas
+    // Cálculos de fechas robustos (admiten AAAA-MM-DD y DD/MM/AAAA)
     const isLoanOverdue = (expectedReturnDate, actualReturnDate) => {
       if (actualReturnDate) return false;
       if (!expectedReturnDate) return false;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const due = new Date(expectedReturnDate + 'T23:59:59');
+      const due = parseDateObj(expectedReturnDate);
+      if (!due) return false;
+      due.setHours(23, 59, 59, 999);
       return due < today;
     };
 
@@ -1899,7 +1969,9 @@ const app = createApp({
       if (!targetDate) return 0;
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const target = new Date(targetDate + 'T00:00:00');
+      const target = parseDateObj(targetDate);
+      if (!target) return 0;
+      target.setHours(0, 0, 0, 0);
       const diffTime = target - today;
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     };
@@ -2568,7 +2640,7 @@ const app = createApp({
       maintenances.value.unshift(maintRecord);
       showPerformMaintenanceModal.value = false;
       saveToStorage();
-      notify(`Mantenimiento registrado y guardado en Hoja de Vida de ${tool.code}. Próximo: ${nextDate}`, 'success');
+      notify(`Mantenimiento registrado y guardado en Hoja de Vida de ${tool.code}. Próximo: ${formatDate(nextDate)}`, 'success');
 
       if (supabaseConnected.value && supabaseClient.value) {
         supabaseClient.value.from('maintenances').upsert([toSupabaseMaint(maintRecord)]).then(({ error }) => {
@@ -2676,7 +2748,7 @@ const app = createApp({
       saveToStorage();
 
       if (isSuccess) {
-        notify(`Prueba de calentamiento registrada y guardada en Hoja de Vida de ${tool.code}. Próxima prueba: ${nextDate}`, 'success');
+        notify(`Prueba de calentamiento registrada y guardada en Hoja de Vida de ${tool.code}. Próxima prueba: ${formatDate(nextDate)}`, 'success');
       } else {
         notify(`Prueba registrada con NOVEDAD para ${tool.code}. Equipo marcado en Mantenimiento.`, 'warning');
       }
@@ -2820,7 +2892,7 @@ const app = createApp({
       const selectedTools = tools.value.filter(t => loanForm.selectedToolIds.includes(t.id));
 
       const now = new Date();
-      const dateFormatted = now.toISOString().slice(0, 16).replace('T', ' ');
+      const dateFormatted = formatDateTime(now);
       const voucherNum = 'VAL-' + now.getFullYear() + '-' + String(loans.value.length + 1).padStart(3, '0');
 
       const newLoan = {
@@ -2890,9 +2962,8 @@ const app = createApp({
         return;
       }
       const now = new Date();
-      const dateFormatted = now.toISOString().slice(0, 16).replace('T', ' ');
       returnForm.loan = loan;
-      returnForm.returnDate = dateFormatted;
+      returnForm.returnDate = formatDateTime(now);
       returnForm.returnCondition = 'Buena';
       returnForm.returnNotes = '';
       returnForm.sendToMaintenance = false;
@@ -3244,11 +3315,11 @@ const app = createApp({
         notify(`Prueba FALLIDA registrada para ${tool.code}. Equipo marcado en mantenimiento.`, 'error');
         if (testForm.triggerCorrectiveIfFailed) {
           openCorrectiveModal(tool);
-          correctiveForm.failureDescription = `Falla detectada durante prueba operativa periódica del ${testForm.testDate}: ${testForm.notes}`;
+          correctiveForm.failureDescription = `Falla detectada durante prueba operativa periódica del ${formatDate(testForm.testDate)}: ${testForm.notes}`;
           correctiveForm.priority = 'urgente';
         }
       } else {
-        notify(`Prueba operativa registrada para ${tool.code}. Próxima prueba programada para: ${nextTestDate}`, 'success');
+        notify(`Prueba operativa registrada para ${tool.code}. Próxima prueba programada para: ${formatDate(nextTestDate)}`, 'success');
       }
 
       if (supabaseConnected.value && supabaseClient.value) {
@@ -3521,7 +3592,7 @@ const app = createApp({
     const exportToolsToExcel = () => {
       let csv = 'Código;Nombre;Categoría;Marca;Modelo;Número de Serie;Estado;Ubicación;Costo ($);Fecha Adquisición;Notas\n';
       tools.value.forEach(t => {
-        csv += `"${t.code}";"${t.name}";"${t.category}";"${t.brand}";"${t.model}";"${t.serialNumber}";"${t.status}";"${t.location}";"${t.cost || 0}";"${t.acquisitionDate || ''}";"${(t.notes || '').replace(/"/g, '""')}"\n`;
+        csv += `"${t.code}";"${t.name}";"${t.category}";"${t.brand}";"${t.model}";"${t.serialNumber}";"${t.status}";"${t.location}";"${t.cost || 0}";"${formatDate(t.acquisitionDate)}";"${(t.notes || '').replace(/"/g, '""')}"\n`;
       });
       downloadCSV(csv, `Inventario_Herramientas_${new Date().toISOString().split('T')[0]}.csv`);
       notify('Catálogo de herramientas exportado para Excel (CSV)');
@@ -3531,7 +3602,7 @@ const app = createApp({
       let csv = 'No. Vale;Técnico;DNI Técnico;Herramientas;Fecha Entrega;Fecha Estimada Devolución;Fecha Real Devolución;Estado;Proyecto;Condición Entrega;Condición Retorno;Observaciones\n';
       loans.value.forEach(l => {
         const toolList = l.toolSnapshot ? l.toolSnapshot.map(t => `${t.code} - ${t.name}`).join(' | ') : '';
-        csv += `"${l.voucherNumber}";"${l.technicianName}";"${l.technicianDni}";"${toolList}";"${l.loanDate}";"${l.expectedReturnDate}";"${l.actualReturnDate || 'Pendiente'}";"${l.status}";"${l.project}";"${l.deliveryCondition}";"${l.returnCondition || ''}";"${(l.deliveryNotes || '') + ' ' + (l.returnNotes || '')}"\n`;
+        csv += `"${l.voucherNumber}";"${l.technicianName}";"${l.technicianDni}";"${toolList}";"${formatDateTime(l.loanDate)}";"${formatDate(l.expectedReturnDate)}";"${l.actualReturnDate ? formatDateTime(l.actualReturnDate) : 'Pendiente'}";"${l.status}";"${l.project}";"${l.deliveryCondition}";"${l.returnCondition || ''}";"${(l.deliveryNotes || '') + ' ' + (l.returnNotes || '')}"\n`;
       });
       downloadCSV(csv, `Historial_Prestamos_${new Date().toISOString().split('T')[0]}.csv`);
       notify('Historial de préstamos exportado para Excel (CSV)');
@@ -3540,7 +3611,7 @@ const app = createApp({
     const exportMaintenancesToExcel = () => {
       let csv = 'Código;Equipo;Código Equipo;Tipo;Estado;Fecha Programada;Fecha Realización;Taller/Proveedor;Responsable;Costo Total ($);Trabajo Realizado;Repuestos;Próximo Mantenimiento\n';
       maintenances.value.forEach(m => {
-        csv += `"${m.code}";"${m.toolName}";"${m.toolCode}";"${m.type}";"${m.status}";"${m.scheduledDate}";"${m.completedDate || 'Pendiente'}";"${m.provider}";"${m.responsible}";"${m.cost || 0}";"${(m.workDone || m.description || '').replace(/"/g, '""')}";"${(m.partsReplaced || '').replace(/"/g, '""')}";"${m.nextMaintenanceDate || ''}"\n`;
+        csv += `"${m.code}";"${m.toolName}";"${m.toolCode}";"${m.type}";"${m.status}";"${formatDate(m.scheduledDate)}";"${m.completedDate ? formatDate(m.completedDate) : 'Pendiente'}";"${m.provider}";"${m.responsible}";"${m.cost || 0}";"${(m.workDone || m.description || '').replace(/"/g, '""')}";"${(m.partsReplaced || '').replace(/"/g, '""')}";"${formatDate(m.nextMaintenanceDate)}"\n`;
       });
       downloadCSV(csv, `Control_Mantenimientos_${new Date().toISOString().split('T')[0]}.csv`);
       notify('Control de mantenimientos exportado para Excel (CSV)');
@@ -3568,10 +3639,10 @@ const app = createApp({
         notify('Acceso denegado: Solo los administradores pueden descargar plantillas de carga masiva', 'error');
         return;
       }
-      const headers = 'Código;Nombre;Categoría;Marca;Modelo;Número de Serie;Ubicación;Costo;Fecha Adquisición (AAAA-MM-DD);Notas';
-      const sample1 = 'TAL-101;Taladro Percutor Inalámbrico 20V Max;Herramienta Eléctrica;DeWalt;DCD796D2;DW-88291;Almacén Central - Estante A3;185;2025-05-10;Incluye cargador rápido y 2 baterías 4Ah';
-      const sample2 = 'GEN-102;Generador Portátil a Gasolina 3500W;Generadores y Motores;Honda;EU30is;HN-99412;Bodega de Maquinaria Norte;1450;2025-02-15;Mantenimiento de aceite cada 100 horas';
-      const sample3 = 'NIV-103;Nivel Óptico de Precisión 32X con Trípode;Medición y Precisión;Leica;NA332;LC-77215;Armario de Instrumentos;420;2025-06-01;Incluye mira telescópica de 5 metros';
+      const headers = 'Código;Nombre;Categoría;Marca;Modelo;Número de Serie;Ubicación;Costo;Fecha Adquisición (DD/MM/AAAA);Notas';
+      const sample1 = 'TAL-101;Taladro Percutor Inalámbrico 20V Max;Herramienta Eléctrica;DeWalt;DCD796D2;DW-88291;Almacén Central - Estante A3;185;10/05/2025;Incluye cargador rápido y 2 baterías 4Ah';
+      const sample2 = 'GEN-102;Generador Portátil a Gasolina 3500W;Generadores y Motores;Honda;EU30is;HN-99412;Bodega de Maquinaria Norte;1450;15/02/2025;Mantenimiento de aceite cada 100 horas';
+      const sample3 = 'NIV-103;Nivel Óptico de Precisión 32X con Trípode;Medición y Precisión;Leica;NA332;LC-77215;Armario de Instrumentos;420;01/06/2025;Incluye mira telescópica de 5 metros';
       const content = `${headers}\n${sample1}\n${sample2}\n${sample3}\n`;
       downloadCSV(content, 'Plantilla_Equipos_TOOLPRO.csv');
       notify('Plantilla oficial de equipos descargada (Compatible con Excel)');
@@ -3789,7 +3860,19 @@ const app = createApp({
               const location = (colMap.location >= 0 && r[colMap.location] ? r[colMap.location].trim() : 'Almacén Central');
               const costRaw = colMap.cost >= 0 && r[colMap.cost] ? r[colMap.cost].replace(/[^0-9.,]/g, '').replace(',', '.') : '0';
               const cost = parseFloat(costRaw) || 0;
-              const acquisitionDate = colMap.acquisitionDate >= 0 && r[colMap.acquisitionDate] ? r[colMap.acquisitionDate].trim() : new Date().toISOString().split('T')[0];
+              const rawAcqDate = colMap.acquisitionDate >= 0 && r[colMap.acquisitionDate] ? r[colMap.acquisitionDate].trim() : '';
+              let acquisitionDate = new Date().toISOString().split('T')[0];
+              if (rawAcqDate) {
+                const parsedD = parseDateObj(rawAcqDate);
+                if (parsedD) {
+                  const y = parsedD.getFullYear();
+                  const m = String(parsedD.getMonth() + 1).padStart(2, '0');
+                  const d = String(parsedD.getDate()).padStart(2, '0');
+                  acquisitionDate = `${y}-${m}-${d}`;
+                } else {
+                  acquisitionDate = rawAcqDate;
+                }
+              }
               const notes = colMap.notes >= 0 && r[colMap.notes] ? r[colMap.notes].trim() : '';
 
               let isValid = true;
@@ -4458,6 +4541,9 @@ const app = createApp({
       cargarDatosEjemplo,
       limpiarBaseDatos,
       // Utilidades
+      formatDate,
+      formatDateTime,
+      parseDateObj,
       isLoanOverdue,
       getDaysDifference,
       getStatusBadge,

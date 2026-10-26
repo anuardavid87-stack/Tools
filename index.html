@@ -630,7 +630,7 @@
                     <tr v-for="loan in activeLoans.slice(0, 5)" :key="loan.id" class="hover:bg-slate-800/40 transition-colors">
                       <td class="py-3 px-3">
                         <span class="font-mono font-semibold text-emerald-400">{{ loan.voucherNumber }}</span>
-                        <div class="text-[10px] text-slate-400">{{ loan.loanDate }}</div>
+                        <div class="text-[10px] text-slate-400">{{ formatDateTime(loan.loanDate) }}</div>
                       </td>
                       <td class="py-3 px-3">
                         <div class="font-medium text-white">{{ loan.technicianName }}</div>
@@ -649,7 +649,7 @@
                           Vencido ({{ Math.abs(getDaysDifference(loan.expectedReturnDate)) }} d)
                         </div>
                         <div v-else class="text-slate-300">
-                          {{ loan.expectedReturnDate }}
+                          {{ formatDate(loan.expectedReturnDate) }}
                           <span class="text-[10px] text-slate-400 block">En {{ getDaysDifference(loan.expectedReturnDate) }} días</span>
                         </div>
                       </td>
@@ -697,7 +697,7 @@
                     </div>
                     <p class="text-[11px] text-slate-400 mt-1 line-clamp-2">{{ maint.description }}</p>
                     <div class="mt-2 flex items-center justify-between text-[11px] pt-2 border-t border-slate-800/60">
-                      <span class="text-slate-400">Prog: {{ maint.scheduledDate }}</span>
+                      <span class="text-slate-400">Prog: {{ formatDate(maint.scheduledDate) }}</span>
                       <button v-if="!isConsulta" @click="openCompleteMaintenanceModal(maint)" class="text-emerald-400 hover:text-emerald-300 font-medium">
                         Finalizar &check;
                       </button>
@@ -1026,7 +1026,7 @@
                       <span class="font-mono text-xs font-bold text-emerald-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                         {{ loan.voucherNumber }}
                       </span>
-                      <span class="text-[11px] text-slate-400 ml-2">Despacho: {{ loan.loanDate }}</span>
+                      <span class="text-[11px] text-slate-400 ml-2">Despacho: {{ formatDateTime(loan.loanDate) }}</span>
                     </div>
 
                     <span v-if="isLoanOverdue(loan.expectedReturnDate, loan.actualReturnDate)" class="bg-rose-500/20 text-rose-400 border border-rose-500/40 text-[10px] font-black uppercase px-2 py-0.5 rounded-full flex items-center gap-1">
@@ -1101,8 +1101,8 @@
                   <tr v-for="loan in filteredCompletedLoans" :key="loan.id" class="hover:bg-slate-800/40 transition-colors">
                     <td class="py-3 px-4">
                       <span class="font-mono font-bold text-emerald-400">{{ loan.voucherNumber }}</span>
-                      <div class="text-[10px] text-slate-400">Entregado: {{ loan.loanDate }}</div>
-                      <div class="text-[10px] text-emerald-400 font-medium">Devuelto: {{ loan.actualReturnDate }}</div>
+                      <div class="text-[10px] text-slate-400">Entregado: {{ formatDateTime(loan.loanDate) }}</div>
+                      <div class="text-[10px] text-emerald-400 font-medium">Devuelto: {{ formatDateTime(loan.actualReturnDate) }}</div>
                     </td>
                     <td class="py-3 px-4">
                       <div class="font-semibold text-white">{{ loan.technicianName }}</div>
@@ -1294,11 +1294,11 @@
                     </div>
                     <div class="flex justify-between">
                       <span class="text-slate-400">Último Mantenimiento:</span>
-                      <span class="font-mono text-slate-300">{{ t.lastMaintenanceDate || 'Sin registro previo' }}</span>
+                      <span class="font-mono text-slate-300">{{ t.lastMaintenanceDate ? formatDate(t.lastMaintenanceDate) : 'Sin registro previo' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-slate-400">Fecha Límite / Vencimiento:</span>
-                      <span class="font-mono font-bold text-rose-300">{{ t.effectiveNextMaint }}</span>
+                      <span class="font-mono font-bold text-rose-300">{{ formatDate(t.effectiveNextMaint) }}</span>
                     </div>
                   </div>
                 </div>
@@ -1373,11 +1373,11 @@
                         </span>
                       </td>
                       <td class="py-3 px-4 font-mono text-slate-300">
-                        {{ t.lastMaintenanceDate || 'Sin registro' }}
+                        {{ t.lastMaintenanceDate ? formatDate(t.lastMaintenanceDate) : 'Sin registro' }}
                       </td>
                       <td class="py-3 px-4">
                         <div class="font-mono font-bold" :class="t.maintStatus === 'overdue' ? 'text-rose-400' : 'text-slate-200'">
-                          {{ t.effectiveNextMaint || 'N/A' }}
+                          {{ t.effectiveNextMaint ? formatDate(t.effectiveNextMaint) : 'N/A' }}
                         </div>
                         <span v-if="t.maintStatus === 'overdue'" class="text-[10px] text-rose-400 font-semibold block">
                           Vencido hace {{ Math.abs(t.daysToMaint) }}d
@@ -1429,7 +1429,7 @@
                       <span class="font-mono text-xs font-bold text-rose-400 bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
                         {{ maint.code }}
                       </span>
-                      <span class="text-[11px] text-slate-400 ml-2">Reportado: {{ maint.scheduledDate }}</span>
+                      <span class="text-[11px] text-slate-400 ml-2">Reportado: {{ formatDate(maint.scheduledDate) }}</span>
                     </div>
 
                     <span :class="{
@@ -1506,7 +1506,7 @@
                   <tr v-for="m in filteredCompletedMaintenances" :key="m.id" class="hover:bg-slate-800/40 transition-colors">
                     <td class="py-3 px-4">
                       <span class="font-mono font-bold text-blue-400">{{ m.code }}</span>
-                      <div class="text-[10px] text-slate-400">{{ m.completedDate || m.scheduledDate }}</div>
+                      <div class="text-[10px] text-slate-400">{{ formatDate(m.completedDate || m.scheduledDate) }}</div>
                     </td>
                     <td class="py-3 px-4">
                       <span class="font-mono text-emerald-400">{{ m.toolCode }}</span>
@@ -1531,7 +1531,7 @@
                     <td class="py-3 px-4 text-[11px] max-w-xs">
                       <div class="text-slate-200">{{ m.workDone || m.description }}</div>
                     </td>
-                    <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate || 'N/A' }}</td>
+                    <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate ? formatDate(m.nextMaintenanceDate) : 'N/A' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1678,11 +1678,11 @@
                     </div>
                     <div class="flex justify-between">
                       <span class="text-slate-400">Última Prueba Realizada:</span>
-                      <span class="font-mono text-slate-300">{{ t.lastTestingDate || 'Sin registro previo' }}</span>
+                      <span class="font-mono text-slate-300">{{ t.lastTestingDate ? formatDate(t.lastTestingDate) : 'Sin registro previo' }}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-slate-400">Fecha Límite / Programada:</span>
-                      <span class="font-mono font-bold text-amber-300">{{ t.effectiveNextTest }}</span>
+                      <span class="font-mono font-bold text-amber-300">{{ formatDate(t.effectiveNextTest) }}</span>
                     </div>
                   </div>
                 </div>
@@ -1736,11 +1736,11 @@
                         </span>
                       </td>
                       <td class="py-3 px-4 font-mono text-slate-300">
-                        {{ t.lastTestingDate || 'Sin registro' }}
+                        {{ t.lastTestingDate ? formatDate(t.lastTestingDate) : 'Sin registro' }}
                       </td>
                       <td class="py-3 px-4">
                         <div class="font-mono font-bold" :class="t.testStatus === 'overdue' ? 'text-amber-400' : 'text-slate-200'">
-                          {{ t.effectiveNextTest || 'N/A' }}
+                          {{ t.effectiveNextTest ? formatDate(t.effectiveNextTest) : 'N/A' }}
                         </div>
                         <span v-if="t.testStatus === 'overdue'" class="text-[10px] text-amber-400 font-semibold block">
                           Pendiente hace {{ Math.abs(t.daysToTest) }}d
@@ -1787,7 +1787,7 @@
                   <tr v-for="m in heatingHistory" :key="m.id" class="hover:bg-slate-800/40 transition-colors">
                     <td class="py-3 px-4">
                       <span class="font-mono font-bold text-amber-400">{{ m.code }}</span>
-                      <div class="text-[10px] text-slate-400">{{ m.completedDate || m.scheduledDate }}</div>
+                      <div class="text-[10px] text-slate-400">{{ formatDate(m.completedDate || m.scheduledDate) }}</div>
                     </td>
                     <td class="py-3 px-4">
                       <span class="font-mono text-emerald-400">{{ m.toolCode }}</span>
@@ -1804,7 +1804,7 @@
                     <td class="py-3 px-4 text-[11px] max-w-sm">
                       <div class="text-slate-200">{{ m.workDone || m.description }}</div>
                     </td>
-                    <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate || 'N/A' }}</td>
+                    <td class="py-3 px-4 font-mono text-slate-300">{{ m.nextMaintenanceDate ? formatDate(m.nextMaintenanceDate) : 'N/A' }}</td>
                   </tr>
                 </tbody>
               </table>
@@ -1996,7 +1996,7 @@
 
                     <!-- Fecha -->
                     <td class="py-3 px-4 text-slate-400 font-mono text-[11px]">
-                      {{ user.createdAt || 'Inicial' }}
+                      {{ user.createdAt ? formatDate(user.createdAt) : 'Inicial' }}
                     </td>
 
                     <!-- Acciones -->
@@ -2696,8 +2696,8 @@
                         {{ getMaintenancePeriodLabel(selectedToolForDetail.maintenancePeriod) }} ({{ selectedToolForDetail.maintenancePeriodDays }}d)
                       </span>
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-2">Último: <span class="text-slate-200 font-mono">{{ selectedToolForDetail.lastMaintenanceDate || 'Sin registro' }}</span></div>
-                    <div class="text-[11px] text-emerald-400 font-mono">Próximo: <span class="font-bold">{{ selectedToolForDetail.nextMaintenanceDate || 'Pendiente cálculo' }}</span></div>
+                    <div class="text-[11px] text-slate-400 mt-2">Último: <span class="text-slate-200 font-mono">{{ selectedToolForDetail.lastMaintenanceDate ? formatDate(selectedToolForDetail.lastMaintenanceDate) : 'Sin registro' }}</span></div>
+                    <div class="text-[11px] text-emerald-400 font-mono">Próximo: <span class="font-bold">{{ selectedToolForDetail.nextMaintenanceDate ? formatDate(selectedToolForDetail.nextMaintenanceDate) : 'Pendiente cálculo' }}</span></div>
                   </div>
                   <button 
                     v-if="!isConsulta"
@@ -2718,8 +2718,8 @@
                         {{ getTestingPeriodLabel(selectedToolForDetail.testingPeriod) }} ({{ selectedToolForDetail.testingPeriodDays }}d)
                       </span>
                     </div>
-                    <div class="text-[11px] text-slate-400 mt-2">Última: <span class="text-slate-200 font-mono">{{ selectedToolForDetail.lastTestingDate || 'Sin registro' }}</span></div>
-                    <div class="text-[11px] text-amber-400 font-mono">Próxima: <span class="font-bold">{{ selectedToolForDetail.nextTestingDate || 'Pendiente cálculo' }}</span></div>
+                    <div class="text-[11px] text-slate-400 mt-2">Última: <span class="text-slate-200 font-mono">{{ selectedToolForDetail.lastTestingDate ? formatDate(selectedToolForDetail.lastTestingDate) : 'Sin registro' }}</span></div>
+                    <div class="text-[11px] text-amber-400 font-mono">Próxima: <span class="font-bold">{{ selectedToolForDetail.nextTestingDate ? formatDate(selectedToolForDetail.nextTestingDate) : 'Pendiente cálculo' }}</span></div>
                   </div>
                   <button 
                     v-if="!isConsulta"
@@ -2748,7 +2748,7 @@
                     <span class="font-mono text-emerald-400 font-semibold">{{ l.voucherNumber }}</span>
                     <span class="text-white font-medium ml-2">{{ l.technicianName }}</span>
                     <div class="text-[11px] text-slate-400 mt-0.5">
-                      Entregado: {{ l.loanDate }} | Retorno: {{ l.actualReturnDate || 'En posesión del técnico' }}
+                      Entregado: {{ formatDateTime(l.loanDate) }} | Retorno: {{ l.actualReturnDate ? formatDateTime(l.actualReturnDate) : 'En posesión del técnico' }}
                     </div>
                   </div>
                   <span :class="l.status === 'activo' ? 'bg-amber-500/20 text-amber-400' : 'bg-emerald-500/20 text-emerald-400'" class="text-[10px] uppercase font-bold px-2 py-0.5 rounded">
@@ -2843,9 +2843,9 @@
                       Responsable / Taller: <strong class="text-slate-300">{{ m.responsible || m.provider }}</strong>
                     </div>
                     <div class="flex items-center gap-3">
-                      <span>Fecha: <strong class="text-slate-200 font-mono">{{ m.completedDate || m.scheduledDate }}</strong></span>
+                      <span>Fecha: <strong class="text-slate-200 font-mono">{{ formatDate(m.completedDate || m.scheduledDate) }}</strong></span>
                       <span v-if="m.nextMaintenanceDate" class="text-emerald-400 font-mono">
-                        Próx: <strong>{{ m.nextMaintenanceDate }}</strong>
+                        Próx: <strong>{{ formatDate(m.nextMaintenanceDate) }}</strong>
                       </span>
                     </div>
                   </div>
@@ -3356,7 +3356,7 @@
             <div class="p-3 bg-emerald-950/30 border border-emerald-800/40 rounded-xl flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="text-emerald-400 font-bold">📅 Próximo Mantenimiento:</span>
-                <span class="font-mono font-bold text-white text-xs">{{ performMaintForm.calculatedNextDate || 'Calculando...' }}</span>
+                <span class="font-mono font-bold text-white text-xs">{{ performMaintForm.calculatedNextDate ? formatDate(performMaintForm.calculatedNextDate) : 'Calculando...' }}</span>
               </div>
               <span class="text-[10px] text-emerald-400/80">Ciclo automático</span>
             </div>
@@ -3468,7 +3468,7 @@
             <div class="p-3 bg-amber-950/30 border border-amber-800/40 rounded-xl flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <span class="text-amber-400 font-bold">⚡ Próxima Prueba:</span>
-                <span class="font-mono font-bold text-white text-xs">{{ performHeatingForm.calculatedNextDate || 'Calculando...' }}</span>
+                <span class="font-mono font-bold text-white text-xs">{{ performHeatingForm.calculatedNextDate ? formatDate(performHeatingForm.calculatedNextDate) : 'Calculando...' }}</span>
               </div>
               <span class="text-[10px] text-amber-400/80">Ciclo automático</span>
             </div>
@@ -3644,7 +3644,7 @@
                       </div>
                     </div>
                     <div class="text-[11px] text-slate-400 mt-1">
-                      Fecha límite retorno: <span class="text-white font-medium">{{ loan.expectedReturnDate }}</span>
+                      Fecha límite retorno: <span class="text-white font-medium">{{ formatDate(loan.expectedReturnDate) }}</span>
                     </div>
                   </div>
                   <button v-if="!isConsulta" @click="showTechDetailModal = false; openReturnModal(loan)" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">
@@ -3663,7 +3663,7 @@
                 <div v-for="loan in techCompletedLoansList" :key="loan.id" class="p-2.5 bg-slate-950 rounded-lg border border-slate-800/80 flex items-center justify-between text-[11px]">
                   <div>
                     <span class="font-mono text-emerald-400">{{ loan.voucherNumber }}</span>
-                    <span class="text-slate-300 ml-2">Retornado el {{ loan.actualReturnDate }}</span>
+                    <span class="text-slate-300 ml-2">Retornado el {{ formatDateTime(loan.actualReturnDate) }}</span>
                   </div>
                   <span class="text-slate-400">Condición: {{ loan.returnCondition || 'Ok' }}</span>
                 </div>
@@ -3703,8 +3703,8 @@
             <div class="grid grid-cols-2 gap-2 text-[11px]">
               <div><strong>Técnico Receptor:</strong> {{ currentVoucher.technicianName }}</div>
               <div><strong>Identificación:</strong> {{ currentVoucher.technicianDni }}</div>
-              <div><strong>Fecha Despacho:</strong> {{ currentVoucher.loanDate }}</div>
-              <div><strong>Fecha Retorno:</strong> {{ currentVoucher.expectedReturnDate }}</div>
+              <div><strong>Fecha Despacho:</strong> {{ formatDateTime(currentVoucher.loanDate) }}</div>
+              <div><strong>Fecha Retorno:</strong> {{ formatDate(currentVoucher.expectedReturnDate) }}</div>
               <div class="col-span-2"><strong>Proyecto / Obra:</strong> {{ currentVoucher.project }}</div>
             </div>
 
@@ -4193,7 +4193,7 @@
           <div style="border: 2px solid #000; padding: 6px 12px; font-weight: bold; font-size: 12pt;">
             VALE No. {{ currentVoucher.voucherNumber }}
           </div>
-          <p style="margin: 4px 0 0 0; font-size: 8.5pt;">Fecha: {{ currentVoucher.loanDate }}</p>
+          <p style="margin: 4px 0 0 0; font-size: 8.5pt;">Fecha: {{ formatDateTime(currentVoucher.loanDate) }}</p>
         </div>
       </div>
 
@@ -4209,7 +4209,7 @@
             <td style="padding: 4px 0; font-weight: bold;">Proyecto / Obra:</td>
             <td style="padding: 4px 0;">{{ currentVoucher.project || 'Uso General de Mantenimiento' }}</td>
             <td style="padding: 4px 0; font-weight: bold;">Retorno Previsto:</td>
-            <td style="padding: 4px 0; font-weight: bold;">{{ currentVoucher.expectedReturnDate }}</td>
+            <td style="padding: 4px 0; font-weight: bold;">{{ formatDate(currentVoucher.expectedReturnDate) }}</td>
           </tr>
           <tr>
             <td style="padding: 4px 0; font-weight: bold;">Condición Entrega:</td>
